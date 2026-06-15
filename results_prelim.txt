@@ -1,0 +1,31 @@
+ANOMALY DETECTION — Classification Report
+
+              precision    recall  f1-score   support
+
+      Normal       1.00      0.95      0.97    665447
+   Anomalous       0.06      0.41      0.10      4746
+
+    accuracy                           0.95    670193
+   macro avg       0.53      0.68      0.54    670193
+weighted avg       0.99      0.95      0.97    670193
+
+F1 Score: 0.1011
+
+Rule-Based Layer Flags:
+  rule_dark_ship           :     0 flagged | precision=0.00
+  rule_spoofing            :    80 flagged | precision=0.55
+  rule_aggression          :  2331 flagged | precision=0.01
+  rule_illegal_fish        :  3749 flagged | precision=0.28
+
+Sample predicted anomalies:
+ entity_id           timestamp vessel_type  sog_knots  anomaly_score  is_anomalous anomaly_type
+         0 2025-01-01 00:00:00   passenger       0.00      -0.583909             0         none
+         0 2025-01-01 00:15:00   passenger      32.27      -0.704064             0         none
+         0 2025-01-01 00:30:00   passenger      27.03      -0.593015             0         none
+         0 2025-01-01 00:45:00   passenger      24.62      -0.564231             0         none
+         0 2025-01-01 09:45:00   passenger      28.76      -0.585859             0         none
+         0 2025-01-01 10:45:00   passenger      25.42      -0.554984             0         none
+         0 2025-01-01 11:00:00   passenger      25.87      -0.557841             0         none
+         0 2025-01-01 12:00:00   passenger      25.27      -0.555458             0         none
+         0 2025-01-01 13:30:00   passenger      26.77      -0.577397             0         none
+         0 2025-01-01 13:45:00   passenger      27.27      -0.555940             0         none

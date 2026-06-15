@@ -69,7 +69,7 @@ def detect_stays_sliding_window(group: pd.DataFrame) -> pd.DataFrame:
             dists = haversine_km(lats[i:j+1], lons[i:j+1], clat, clon)
 
             if dists.max() > STAY_RADIUS_KM:
-                break  # window too spread out
+                break  #window is too spread out - stop expanding
 
             duration_min = (times[j] - times[i]) / 60.0
             if duration_min >= STAY_MIN_DURATION_M:
@@ -111,14 +111,21 @@ def detect_stays_sliding_window(group: pd.DataFrame) -> pd.DataFrame:
 
 def run_stay_detection(df: pd.DataFrame) -> pd.DataFrame:
     """Apply stay detection per vessel."""
-    result = (
-        df.groupby("entity_id", group_keys=False)
-          .apply(detect_stays_sliding_window)
-    )
-    # pandas 2.x may drop the groupby key from the result; restore it
-    if "entity_id" not in result.columns:
-        result = result.reset_index(level="entity_id")
-    return result.reset_index(drop=True)
+    # result = (
+    #     df.groupby("entity_id", group_keys=False)
+    #       .apply(detect_stays_sliding_window)
+    # )
+    # # pandas 2.x may drop the groupby key from the result; restore it
+    # if "entity_id" not in result.columns:
+    #     result = result.reset_index(level="entity_id")
+    # return result.reset_index(drop=True)
+    results = []
+    for entity_id, group in df.groupby("entity_id"):
+        g = detect_stays_sliding_window(group)
+        g["entity_id"] = entity_id  # ensure entity_id is preserved
+        results.append(g)
+    return pd.concat(results, ignore_index=True)
+
 
 
 # FEATURE ENGINEERING
@@ -253,7 +260,7 @@ def predict_anomalies(df: pd.DataFrame, model, scaler) -> pd.DataFrame:
 # RULE-BASED LAYER (transparent, on top of IF)
 def rule_based_flags(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Lightweight rules that map to known anomaly types in your data:
+    Lightweight rules that map to known anomaly types in data:
 
       dark_ship    → extended stay + zero speed  (vessel goes dark)
       spoofing     → large instantaneous jump in position
