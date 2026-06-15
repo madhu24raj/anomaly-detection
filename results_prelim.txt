@@ -1,31 +1,32 @@
-ANOMALY DETECTION — Classification Report
+[detectiondraft.py]
+ANOMALY DETECTION - Classification Report 
 
               precision    recall  f1-score   support
 
-      Normal       1.00      0.95      0.97    665447
-   Anomalous       0.06      0.41      0.10      4746
+      Normal       1.00      0.98      0.99    665447
+   Anomalous       0.17      0.59      0.27      4746
 
-    accuracy                           0.95    670193
-   macro avg       0.53      0.68      0.54    670193
-weighted avg       0.99      0.95      0.97    670193
+    accuracy                           0.98    670193
+   macro avg       0.59      0.78      0.63    670193
+weighted avg       0.99      0.98      0.98    670193
 
-F1 Score: 0.1011
+F1 Score: 0.2686
 
 Rule-Based Layer Flags:
-  rule_dark_ship           :     0 flagged | precision=0.00
-  rule_spoofing            :    80 flagged | precision=0.55
-  rule_aggression          :  2331 flagged | precision=0.01
+  rule_dark_ship           :     9 flagged | precision=1.00
+  rule_spoofing            :    89 flagged | precision=0.56
+  rule_aggression          :  1012 flagged | precision=0.03
   rule_illegal_fish        :  3749 flagged | precision=0.28
 
 Sample predicted anomalies:
  entity_id           timestamp vessel_type  sog_knots  anomaly_score  is_anomalous anomaly_type
-         0 2025-01-01 00:00:00   passenger       0.00      -0.583909             0         none
-         0 2025-01-01 00:15:00   passenger      32.27      -0.704064             0         none
-         0 2025-01-01 00:30:00   passenger      27.03      -0.593015             0         none
-         0 2025-01-01 00:45:00   passenger      24.62      -0.564231             0         none
-         0 2025-01-01 09:45:00   passenger      28.76      -0.585859             0         none
-         0 2025-01-01 10:45:00   passenger      25.42      -0.554984             0         none
-         0 2025-01-01 11:00:00   passenger      25.87      -0.557841             0         none
-         0 2025-01-01 12:00:00   passenger      25.27      -0.555458             0         none
-         0 2025-01-01 13:30:00   passenger      26.77      -0.577397             0         none
-         0 2025-01-01 13:45:00   passenger      27.27      -0.555940             0         none
+         0 2025-01-01 00:00:00   passenger       0.00      -0.647111             0         none
+         0 2025-01-01 00:15:00   passenger      32.27      -0.646303             0         none
+         0 2025-01-01 14:30:00   passenger       5.60      -0.662329             0         none
+         0 2025-01-04 05:00:00   passenger      17.79      -0.594467             0         none
+         0 2025-01-05 09:30:00   passenger       3.92      -0.687580             0         none
+         0 2025-01-07 23:30:00   passenger       5.65      -0.654905             0         none
+         1 2025-01-01 00:00:00     fishing       0.00      -0.633671             0         none
+         1 2025-01-01 04:15:00     fishing       1.92      -0.491571             0         none
+         1 2025-01-02 11:45:00     fishing       1.50      -0.510590             0         none
+         1 2025-01-02 21:00:00     fishing       1.68      -0.526869             0         none
