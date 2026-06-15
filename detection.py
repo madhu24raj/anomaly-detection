@@ -15,17 +15,13 @@ from sklearn.metrics import classification_report, f1_score
 from scipy.spatial.distance import cdist
 from datetime import timedelta
 
-# ─────────────────────────────────────────────
 # CONSTANTS
-# ─────────────────────────────────────────────
 STAY_RADIUS_KM       = 0.5    # spatial radius to consider a vessel "staying"
 STAY_MIN_DURATION_M  = 30     # minimum stay duration in minutes
 SPEED_STAY_THRESH    = 1.0    # knots: below this → likely stationary
 
 
-# ─────────────────────────────────────────────
 # HELPERS
-# ─────────────────────────────────────────────
 def haversine_km(lat1, lon1, lat2, lon2):
     """Vectorized haversine distance in km."""
     R = 6371.0
@@ -36,9 +32,7 @@ def haversine_km(lat1, lon1, lat2, lon2):
     return 2 * R * np.arcsin(np.sqrt(a))
 
 
-# ─────────────────────────────────────────────
-# 1. STAY DETECTION
-# ─────────────────────────────────────────────
+# STAY DETECTION
 def detect_stays_sliding_window(group: pd.DataFrame) -> pd.DataFrame:
     """
     HAYSTAC-style stay detection using a sliding window approach.
@@ -127,9 +121,7 @@ def run_stay_detection(df: pd.DataFrame) -> pd.DataFrame:
     return result.reset_index(drop=True)
 
 
-# ─────────────────────────────────────────────
-# 2. FEATURE ENGINEERING
-# ─────────────────────────────────────────────
+# FEATURE ENGINEERING
 def build_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     Per-ping features for anomaly detection.
@@ -207,9 +199,7 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ─────────────────────────────────────────────
 # 3. ANOMALY DETECTION
-# ─────────────────────────────────────────────
 FEATURE_COLS = [
     "sog_knots",
     "speed_delta",
@@ -260,9 +250,7 @@ def predict_anomalies(df: pd.DataFrame, model, scaler) -> pd.DataFrame:
     return df
 
 
-# ─────────────────────────────────────────────
-# 4. RULE-BASED LAYER (transparent, on top of IF)
-# ─────────────────────────────────────────────
+# RULE-BASED LAYER (transparent, on top of IF)
 def rule_based_flags(df: pd.DataFrame) -> pd.DataFrame:
     """
     Lightweight rules that map to known anomaly types in your data:
@@ -288,9 +276,7 @@ def rule_based_flags(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ─────────────────────────────────────────────
-# 5. EVALUATION (uses ground truth cols)
-# ─────────────────────────────────────────────
+# EVALUATION (uses ground truth cols)
 def evaluate(df: pd.DataFrame):
     """
     Compare predictions to ground truth (is_anomalous).
@@ -318,9 +304,7 @@ def evaluate(df: pd.DataFrame):
     return f1
 
 
-# ─────────────────────────────────────────────
-# 6. FULL PIPELINE
-# ─────────────────────────────────────────────
+# FULL PIPELINE
 def run_pipeline(df: pd.DataFrame, contamination: float = 0.05) -> pd.DataFrame:
     """
     End-to-end:
@@ -355,9 +339,7 @@ def run_pipeline(df: pd.DataFrame, contamination: float = 0.05) -> pd.DataFrame:
     return df
 
 
-# ─────────────────────────────────────────────
 # QUICKSTART
-# ─────────────────────────────────────────────
 if __name__ == "__main__":
     df = pd.read_csv("ais_small.csv")
     results = run_pipeline(df, contamination=0.05)
