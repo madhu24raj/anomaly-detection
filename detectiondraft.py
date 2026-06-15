@@ -12,20 +12,19 @@ import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, f1_score
-from scipy.spatial.distance import cdist
-from datetime import timedelta
 
-# ─────────────────────────────────────────────
+
 # CONSTANTS
-# ─────────────────────────────────────────────
-STAY_RADIUS_KM       = 0.5    # spatial radius to consider a vessel "staying"
-STAY_MIN_DURATION_M  = 30     # minimum stay duration in minutes
-SPEED_STAY_THRESH    = 1.0    # knots: below this → likely stationary
+STAY_RADIUS_KM        = 0.5    # spatial radius to consider a vessel "staying"
+STAY_MIN_DURATION_M   = 30     # minimum stay duration in minutes
+SPEED_STAY_THRESH     = 1.0    # knots: below this -> likely stationary
+AIS_GAP_THRESHOLD_MIN = 60      # minutes of silence before flagging "dark ship"
+SPOOF_DIST_KM         = 50      # absolute jump (km) considered implausible
+SPOOF_IMPLIED_KNOTS   = 60      # implied speed (knots) considered implausible
+MIN_GROUP_SIZE_FOR_TYPE_MODEL = 50  # below this, fall back to the global model
 
 
-# ─────────────────────────────────────────────
 # HELPERS
-# ─────────────────────────────────────────────
 def haversine_km(lat1, lon1, lat2, lon2):
     """Vectorized haversine distance in km."""
     R = 6371.0
@@ -36,9 +35,7 @@ def haversine_km(lat1, lon1, lat2, lon2):
     return 2 * R * np.arcsin(np.sqrt(a))
 
 
-# ─────────────────────────────────────────────
-# 1. STAY DETECTION
-# ─────────────────────────────────────────────
+# STAY DETECTION
 def detect_stays_sliding_window(group: pd.DataFrame) -> pd.DataFrame:
     """
     HAYSTAC-style stay detection using a sliding window approach.
@@ -46,7 +43,7 @@ def detect_stays_sliding_window(group: pd.DataFrame) -> pd.DataFrame:
     Algorithm:
       - Sort pings by time for one vessel.
       - Slide a window; if all pings within the window fit inside
-        STAY_RADIUS_KM and span >= STAY_MIN_DURATION_M → mark as stay.
+        STAY_RADIUS_KM and span >= STAY_MIN_DURATION_M -> mark as stay.
       - Merge overlapping stay windows.
       - Also flags low-speed pings independently as a quick signal.
 
@@ -117,15 +114,15 @@ def detect_stays_sliding_window(group: pd.DataFrame) -> pd.DataFrame:
 
 def run_stay_detection(df: pd.DataFrame) -> pd.DataFrame:
     """Apply stay detection per vessel."""
-    return (
-        df.groupby("entity_id", group_keys=False)
-          .apply(detect_stays_sliding_window)
-    )
+    results = []
+    for entity_id, group in df.groupby("entity_id"):
+        g = detect_stays_sliding_window(group)
+        g["entity_id"] = entity_id
+        results.append(g)
+    return pd.concat(results, ignore_index=True)
 
 
-# ─────────────────────────────────────────────
-# 2. FEATURE ENGINEERING
-# ─────────────────────────────────────────────
+# FEATURE ENGINEERING
 def build_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     Per-ping features for anomaly detection.
@@ -137,15 +134,26 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
         dist_from_prev_km, bearing_delta (heading change)
         dist_from_median_pos (how far from vessel's typical area)
 
+    Temporal / reporting:
+        time_gap_min (minutes since this vessel's previous ping --
+            the key signal for AIS "dark" periods)
+        hour_of_day, day_of_week
+
     Stay-based (uses stay detection output):
         is_stay, stay_duration_min (0 if not a stay)
-
-    Temporal:
-        hour_of_day, day_of_week
     """
     df = df.copy()
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df = df.sort_values(["entity_id", "timestamp"])
+
+    # ── reporting-gap feature (do this first, while sorted)
+    df["time_gap_min"] = (
+        df.groupby("entity_id")["timestamp"]
+          .diff()
+          .dt.total_seconds()
+          .div(60)
+          .fillna(0)
+    )
 
     # ── speed features
     df["speed_delta"] = df.groupby("entity_id")["sog_knots"].diff().fillna(0)
@@ -203,79 +211,129 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ─────────────────────────────────────────────
 # 3. ANOMALY DETECTION
-# ─────────────────────────────────────────────
+# NOTE: raw sog_knots is intentionally excluded. "Normal" speed varies hugely
+# by vessel type (a 25kt passenger ferry vs a 5kt fishing boat), so the
+# per-vessel z-scored speed (speed_z) is the meaningful signal. Combined with
+# per-vessel-type models below, this keeps fast-but-normal vessels from
+# dominating the flagged set.
 FEATURE_COLS = [
-    "sog_knots",
-    "speed_delta",
     "speed_z",
+    "speed_delta",
     "dist_from_prev_km",
     "bearing_delta",
     "dist_from_median_km",
     "stay_duration_min",
     "is_stay_int",
+    "time_gap_min",
     "hour_of_day",
 ]
 
 
-def train_isolation_forest(df: pd.DataFrame, contamination: float = 0.05):
+def train_isolation_forest_by_type(df: pd.DataFrame, contamination: float = 0.02):
     """
-    Unsupervised anomaly detection with Isolation Forest.
-    contamination ≈ expected anomaly rate (matches 5% in small dataset).
+    Train one Isolation Forest per vessel_type, plus a global fallback model
+    for any type with too few rows to train reliably.
 
-    Returns: trained model, scaler
+    contamination is a *prior assumption* about anomaly rate -- it is NOT
+    tuned against ground-truth labels (that would be leakage). 0.02 is a
+    starting point; if you want to refine it without peeking at labels,
+    look at the distribution of anomaly_score per vessel_type (e.g.
+    df.groupby('vessel_type')['anomaly_score'].describe() or a histogram)
+    and look for a natural break/elbow rather than matching a known rate.
+
+    Returns: dict of models keyed by vessel_type (+ "__global__"),
+             matching dict of scalers.
     """
-    X = df[FEATURE_COLS].fillna(0).values
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    models, scalers = {}, {}
 
-    model = IsolationForest(
-        n_estimators=200,
-        contamination=contamination,
-        random_state=42,
-        n_jobs=-1,
-    )
-    model.fit(X_scaled)
-    return model, scaler
+    X_all = df[FEATURE_COLS].fillna(0).values
+    global_scaler = StandardScaler().fit(X_all)
+    global_model = IsolationForest(
+        n_estimators=200, contamination=contamination, random_state=42, n_jobs=-1
+    ).fit(global_scaler.transform(X_all))
+    models["__global__"] = global_model
+    scalers["__global__"] = global_scaler
+
+    for vtype, group in df.groupby("vessel_type"):
+        if len(group) < MIN_GROUP_SIZE_FOR_TYPE_MODEL:
+            continue  # too few samples -- predict_anomalies_by_type falls back to global
+
+        X = group[FEATURE_COLS].fillna(0).values
+        scaler = StandardScaler().fit(X)
+        model = IsolationForest(
+            n_estimators=200, contamination=contamination, random_state=42, n_jobs=-1
+        ).fit(scaler.transform(X))
+
+        models[vtype] = model
+        scalers[vtype] = scaler
+
+    return models, scalers
 
 
-def predict_anomalies(df: pd.DataFrame, model, scaler) -> pd.DataFrame:
+def predict_anomalies_by_type(df: pd.DataFrame, models, scalers) -> pd.DataFrame:
     """
-    Predict anomalies; score < 0 = anomalous in IF convention.
+    Predict anomalies using the per-vessel-type models (falling back to the
+    global model for unseen / small vessel types).
+
     Returns df with added:
         anomaly_score  (raw IF score, lower = more anomalous)
         pred_anomalous (bool)
     """
-    X = df[FEATURE_COLS].fillna(0).values
-    X_scaled = scaler.transform(X)
-
     df = df.copy()
-    df["anomaly_score"]    = model.score_samples(X_scaled)
-    df["pred_anomalous"]   = model.predict(X_scaled) == -1   # -1 → anomaly
+    df["anomaly_score"]  = np.nan
+    df["pred_anomalous"] = False
+
+    for vtype, group in df.groupby("vessel_type"):
+        key = vtype if vtype in models else "__global__"
+        X = group[FEATURE_COLS].fillna(0).values
+        X_scaled = scalers[key].transform(X)
+
+        df.loc[group.index, "anomaly_score"]  = models[key].score_samples(X_scaled)
+        df.loc[group.index, "pred_anomalous"] = models[key].predict(X_scaled) == -1
+
     return df
 
 
-# ─────────────────────────────────────────────
-# 4. RULE-BASED LAYER (transparent, on top of IF)
-# ─────────────────────────────────────────────
+# RULE-BASED LAYER (transparent, on top of IF)
 def rule_based_flags(df: pd.DataFrame) -> pd.DataFrame:
     """
     Lightweight rules that map to known anomaly types in your data:
 
-      dark_ship    → extended stay + zero speed  (vessel goes dark)
-      spoofing     → large instantaneous jump in position
-      aggression   → sudden high bearing + speed change
-      illegal_fish → low-speed loitering in unusual location
+      dark_ship    -> AIS goes silent for an extended period (time_gap_min)
+      spoofing     -> a position jump that's physically implausible given
+                       the elapsed time (or just very large outright)
+      aggression   -> sudden, large, simultaneous change in speed and heading
+      illegal_fish -> low-speed loitering far from a fishing vessel's
+                       usual grounds
     """
     df = df.copy()
-    df["rule_dark_ship"]    = (df["is_stay_int"] == 1) & (df["sog_knots"] < 0.2) & \
-                               (df["stay_duration_min"] > 120)
-    df["rule_spoofing"]     = df["dist_from_prev_km"] > 50   # >50 km jump per interval
-    df["rule_aggression"]   = (df["speed_delta"] > 10) & (abs(df["bearing_delta"]) > 90)
-    df["rule_illegal_fish"] = (df["sog_knots"] < 2) & \
-                               (df["dist_from_median_km"] > 20) & \
-                               (df["vessel_type"] == "fishing")
+
+    # dark_ship: gap in AIS reporting longer than expected
+    df["rule_dark_ship"] = df["time_gap_min"] > AIS_GAP_THRESHOLD_MIN
+
+    # spoofing: implausible jump given time elapsed, OR a huge jump regardless
+    df["implied_speed_knots"] = np.where(
+        df["time_gap_min"] > 0,
+        (df["dist_from_prev_km"] / 1.852) / (df["time_gap_min"] / 60.0),
+        0.0,
+    )
+    df["rule_spoofing"] = (
+        (df["dist_from_prev_km"] > SPOOF_DIST_KM) |
+        (df["implied_speed_knots"] > SPOOF_IMPLIED_KNOTS)
+    )
+
+    # aggression: abrupt, large change in both speed and heading at once
+    df["rule_aggression"] = (
+        (df["speed_delta"].abs() > 15) & (df["bearing_delta"].abs() > 120)
+    )
+
+    # illegal_fish: fishing vessel loitering well outside its normal area
+    df["rule_illegal_fish"] = (
+        (df["vessel_type"] == "fishing") &
+        (df["sog_knots"] < 2) &
+        (df["dist_from_median_km"] > 20)
+    )
 
     df["any_rule_flag"] = (
         df["rule_dark_ship"] | df["rule_spoofing"] |
@@ -284,9 +342,7 @@ def rule_based_flags(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ─────────────────────────────────────────────
-# 5. EVALUATION (uses ground truth cols)
-# ─────────────────────────────────────────────
+# EVALUATION (uses ground truth cols)
 def evaluate(df: pd.DataFrame):
     """
     Compare predictions to ground truth (is_anomalous).
@@ -314,21 +370,21 @@ def evaluate(df: pd.DataFrame):
     return f1
 
 
-# ─────────────────────────────────────────────
-# 6. FULL PIPELINE
-# ─────────────────────────────────────────────
-def run_pipeline(df: pd.DataFrame, contamination: float = 0.05) -> pd.DataFrame:
+# FULL PIPELINE
+def run_pipeline(df: pd.DataFrame, contamination: float = 0.02) -> pd.DataFrame:
     """
     End-to-end:
       1. Stay detection
       2. Feature engineering
-      3. Isolation Forest anomaly detection
+      3. Per-vessel-type Isolation Forest anomaly detection
       4. Rule-based overlay
-      5. Evaluation vs ground truth
+      5. Combine model + rules (OR) for final prediction
+      6. Evaluation vs ground truth
 
     Args:
         df: raw AIS dataframe
-        contamination: expected anomaly rate (match to dataset, e.g. 0.05 for small, 0.01 for large)
+        contamination: prior assumption about per-type anomaly rate
+            (NOT tuned to ground truth -- see train_isolation_forest_by_type)
     """
     print("Step 1: Stay detection...")
     df = run_stay_detection(df)
@@ -336,14 +392,20 @@ def run_pipeline(df: pd.DataFrame, contamination: float = 0.05) -> pd.DataFrame:
     print("Step 2: Feature engineering...")
     df = build_features(df)
 
-    print("Step 3: Training Isolation Forest...")
-    model, scaler = train_isolation_forest(df, contamination=contamination)
+    print("Step 3: Training per-vessel-type Isolation Forests...")
+    models, scalers = train_isolation_forest_by_type(df, contamination=contamination)
 
     print("Step 4: Predicting anomalies...")
-    df = predict_anomalies(df, model, scaler)
+    df = predict_anomalies_by_type(df, models, scalers)
 
     print("Step 5: Rule-based flags...")
     df = rule_based_flags(df)
+
+    # Final prediction: flagged by the model OR by any transparent rule.
+    # This favors recall (catching more true anomalies) at some cost to
+    # precision -- adjust by dropping weak rules or raising `contamination`
+    # if you need fewer false positives instead.
+    df["pred_anomalous"] = df["pred_anomalous"] | df["any_rule_flag"]
 
     print("Step 6: Evaluation...\n")
     evaluate(df)
@@ -351,12 +413,10 @@ def run_pipeline(df: pd.DataFrame, contamination: float = 0.05) -> pd.DataFrame:
     return df
 
 
-# ─────────────────────────────────────────────
 # QUICKSTART
-# ─────────────────────────────────────────────
 if __name__ == "__main__":
     df = pd.read_csv("ais_small.csv")
-    results = run_pipeline(df, contamination=0.05)
+    results = run_pipeline(df, contamination=0.02)
 
     # Show sample anomalies
     print("\nSample predicted anomalies:")
