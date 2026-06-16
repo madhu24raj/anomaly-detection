@@ -10,7 +10,6 @@ from sklearn.preprocessing import OrdinalEncoder
 import warnings
 warnings.filterwarnings("ignore")
 
-# ──────────────────────────────────────────────────────────────
 # CONSTANTS & CONFIG
 # ──────────────────────────────────────────────────────────────
 STAY_RADIUS_KM            = 0.5
@@ -197,7 +196,7 @@ def train_and_predict_self_supervised(df: pd.DataFrame) -> pd.DataFrame:
     # 1. Create synthetic "shadow" data by independently shuffling every column
     # This destroys normal physical relationships (e.g. fast speed + low distance)
     X_fake = np.zeros_like(X_real)
-    for i in range(X_real.shape):
+    for i in range(X_real.shape[1]):
         X_fake[:, i] = np.random.permutation(X_real[:, i])
         
     # 2. Combine and create dummy labels (0 = Real, 1 = Fake)
@@ -261,7 +260,7 @@ def run_pipeline(df: pd.DataFrame) -> pd.DataFrame:
     print("Step 3: Feature engineering...")
     df = build_features(df)
 
-    print("Step 4: Training Self-Supervised Tree (The Magic happens here)...")
+    print("Step 4: Training Self-Supervised Tree...")
     df = train_and_predict_self_supervised(df)
 
     print("Step 5: Dynamic Threshold Selection...")
