@@ -184,52 +184,48 @@ FEATURE_COLS = [
     "rendezvous_flag", "is_night", "vessel_type_encoded"
 ]
 
-def train_and_predict_self_supervised(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Trains a HistGradientBoosting tree to distinguish between real AIS rows
-    and synthetically corrupted rows. Real rows flagged as corrupted are anomalies.
-    NO LABEL LEAKAGE.
-    """
-    df = df.copy()
-    X_real = df[FEATURE_COLS].values
+# def train_and_predict_self_supervised(df: pd.DataFrame) -> pd.DataFrame:
+#     """
+#     Trains a HistGradientBoosting tree to distinguish between real AIS rows
+#     and synthetically corrupted rows. Real rows flagged as corrupted are anomalies.
+#     """
+#     df = df.copy()
+#     X_real = df[FEATURE_COLS].values
     
-    # 1. Create synthetic "shadow" data by independently shuffling every column
-    # This destroys normal physical relationships (e.g. fast speed + low distance)
-    X_fake = np.zeros_like(X_real)
-    for i in range(X_real.shape[1]):
-        X_fake[:, i] = np.random.permutation(X_real[:, i])
+#     # 1. Create synthetic "shadow" data by independently shuffling every column
+#     # This destroys normal physical relationships (e.g. fast speed + low distance)
+#     X_fake = np.zeros_like(X_real)
+#     for i in range(X_real.shape[1]):
+#         X_fake[:, i] = np.random.permutation(X_real[:, i])
         
-    # 2. Combine and create dummy labels (0 = Real, 1 = Fake)
-    X_train = np.vstack([X_real, X_fake])
-    y_train = np.hstack([np.zeros(len(X_real)), np.ones(len(X_fake))])
+#     # 2. Combine and create dummy labels (0 = Real, 1 = Fake)
+#     X_train = np.vstack([X_real, X_fake])
+#     y_train = np.hstack([np.zeros(len(X_real)), np.ones(len(X_fake))])
     
-    # 3. Train Classifier
-    # HistGradient handles NaNs beautifully and is incredibly fast
-    clf = HistGradientBoostingClassifier(
-        max_iter=150,
-        learning_rate=0.1,
-        max_depth=7,
-        class_weight="balanced",
-        random_state=42
-    )
-    clf.fit(X_train, y_train)
+#     # 3. Train Classifier
+#     # HistGradient handles NaNs beautifully and is incredibly fast
+#     clf = HistGradientBoostingClassifier(
+#         max_iter=150,
+#         learning_rate=0.1,
+#         max_depth=7,
+#         class_weight="balanced",
+#         random_state=42
+#     )
+#     clf.fit(X_train, y_train)
     
-    # 4. Predict on REAL data. 
-    # High probability of being fake = violates physics = Anomaly!
-    df["final_score"] = clf.predict_proba(X_real)[:, 1]
+#     # 4. Predict on REAL data. 
+#     # High probability of being fake = violates physics = Anomaly!
+#     df["final_score"] = clf.predict_proba(X_real)[:, 1]
     
-    return df
+#     return df
 
-# ──────────────────────────────────────────────────────────────
-# 5. THRESHOLDING & EVALUATION
-# ──────────────────────────────────────────────────────────────
-def select_dynamic_threshold(scores: pd.Series) -> float:
-    """
-    Since anomalies are rare, they will sit in the extreme right tail of probabilities.
-    We target a high percentile, but bound it to ensure physical plausibility.
-    """
-    # 99th percentile equates to roughly ~1% contamination assumption
-    return float(np.clip(np.percentile(scores, 99.0), 0.75, 0.98))
+# def select_dynamic_threshold(scores: pd.Series) -> float:
+#     """
+#     Since anomalies are rare, they will sit in the extreme right tail of probabilities.
+#     We target a high percentile, but bound it to ensure physical plausibility.
+#     """
+#     # 99th percentile equates to roughly ~1% contamination assumption
+#     return float(np.clip(np.percentile(scores, 99.0), 0.75, 0.98))
 
 def evaluate(df: pd.DataFrame, threshold: float):
     y_true = df["is_anomalous"].astype(int)
