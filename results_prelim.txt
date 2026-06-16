@@ -11,55 +11,55 @@ Step 8: Evaluation...
 
 =======================================================
 ANOMALY DETECTION — Classification Report
-Threshold: 0.3432
+Threshold: 0.4295
 =======================================================
               precision    recall  f1-score   support
 
-      Normal       1.00      0.96      0.98    665447
-   Anomalous       0.12      0.83      0.21      4746
+      Normal       1.00      0.97      0.98    665447
+   Anomalous       0.15      0.70      0.24      4746
 
-    accuracy                           0.95    670193
-   macro avg       0.56      0.89      0.59    670193
-weighted avg       0.99      0.95      0.97    670193
+    accuracy                           0.97    670193
+   macro avg       0.57      0.84      0.61    670193
+weighted avg       0.99      0.97      0.98    670193
 
-F1 Score: 0.2050
+F1 Score: 0.2441
 
 Rule Precision (vs ground truth, for diagnostics only):
   dark_ship           :      9 flagged | precision=1.00
-  spoofing            :   3307 flagged | precision=0.02
-  transshipment       :  19769 flagged | precision=0.15
-  illegal_fishing     :   3810 flagged | precision=0.28
+  spoofing            :   3299 flagged | precision=0.01
+  transshipment       :  18820 flagged | precision=0.14
+  illegal_fishing     :   2912 flagged | precision=0.34
 
-Oracle best F1 (label-tuned threshold=0.5592): 0.3047
+Oracle best F1 (label-tuned threshold=0.5700): 0.2975
   ^ use this threshold only for offline eval, not production
 
 Sample predicted anomalies:
  entity_id           timestamp vessel_type  sog_knots  final_score  is_anomalous anomaly_type
-         0 2025-01-01 00:00:00   passenger       0.00     0.772013             0         none
-         0 2025-01-01 00:15:00   passenger      32.27     0.511404             0         none
-         0 2025-01-01 14:30:00   passenger       5.60     0.480478             0         none
-         0 2025-01-04 03:00:00   passenger      32.25     0.389214             0         none
-         0 2025-01-04 04:45:00   passenger       5.09     0.385800             0         none
-         0 2025-01-05 09:30:00   passenger       3.92     0.492717             0         none
-         0 2025-01-06 05:30:00   passenger      31.51     0.354919             0         none
-         0 2025-01-07 04:00:00   passenger       5.37     0.401807             0         none
-         0 2025-01-07 23:30:00   passenger       5.65     0.452339             0         none
-         1 2025-01-01 00:00:00     fishing       0.00     0.836967             0         none
-         1 2025-01-01 04:15:00     fishing       1.92     0.647766             0         none
-         1 2025-01-02 11:45:00     fishing       1.50     0.658986             0         none
-         1 2025-01-02 21:00:00     fishing       1.68     0.669289             0         none
-         1 2025-01-03 02:15:00     fishing       1.80     0.664848             0         none
-         1 2025-01-03 15:30:00     fishing       1.78     0.604410             0         none
+         0 2025-01-01 00:00:00   passenger       0.00     0.762059             0         none
+         0 2025-01-01 00:15:00   passenger      32.27     0.470331             0         none
+         0 2025-01-01 14:30:00   passenger       5.60     0.446325             0         none
+         0 2025-01-05 09:30:00   passenger       3.92     0.467293             0         none
+         1 2025-01-01 00:00:00     fishing       0.00     0.656138             0         none
+         1 2025-01-01 04:15:00     fishing       1.92     0.485601             0         none
+         1 2025-01-02 11:45:00     fishing       1.50     0.525571             0         none
+         1 2025-01-02 21:00:00     fishing       1.68     0.527404             0         none
+         1 2025-01-03 02:15:00     fishing       1.80     0.540810             0         none
+         1 2025-01-03 15:30:00     fishing       1.78     0.459670             0         none
+         1 2025-01-03 15:45:00     fishing       1.94     0.441775             0         none
+         1 2025-01-03 20:15:00     fishing       1.99     0.436954             0         none
+         1 2025-01-03 21:15:00     fishing       1.81     0.466652             0         none
+         1 2025-01-04 06:45:00     fishing       1.45     0.530245             0         none
+         1 2025-01-04 07:00:00     fishing       1.71     0.479713             0         none
 
 Score distribution by anomaly type:
                          mean    50%    75%    max
 anomaly_type                                      
-aggressive_maneuvering  0.275  0.212  0.324  0.845
-ais_spoofing            0.405  0.366  0.489  1.000
-dark_activity           0.587  0.754  1.000  1.000
-illegal_fishing         0.641  0.632  0.697  0.991
-none                    0.133  0.107  0.170  1.000
-transshipment           0.637  0.625  0.693  0.877
+aggressive_maneuvering  0.256  0.186  0.314  0.839
+ais_spoofing            0.402  0.373  0.465  0.986
+dark_activity           0.587  0.707  1.000  1.000
+illegal_fishing         0.608  0.607  0.688  0.980
+none                    0.136  0.109  0.180  1.000
+transshipment           0.605  0.607  0.632  0.831
 
 [detectiondraft.py]
 ANOMALY DETECTION - Classification Report 
