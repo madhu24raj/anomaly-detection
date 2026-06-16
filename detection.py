@@ -153,7 +153,7 @@ def detect_rendezvous(df: pd.DataFrame) -> pd.DataFrame:
     Flag pings where ≥2 *different* vessels share the same fine grid cell
     in the same time slot — a pure vectorized proxy for co-location.
 
-    Grid cell ≈ 0.3° × 0.3° (~30 km) and time slot = 15 min.
+    Grid cell ≈ 0.1° × 0.1° and time slot = 10 min.
     No pairwise loop: count distinct entity_ids per (slot, cell);
     any cell with count ≥ 2 gets flagged. Fast merge back to original rows.
 
@@ -165,10 +165,10 @@ def detect_rendezvous(df: pd.DataFrame) -> pd.DataFrame:
     ts = pd.to_datetime(df["timestamp"])
 
     # ~15-min time bucket
-    df["_slot"] = (ts.astype("int64") // (15 * 60 * 1_000_000_000)).astype(int)
+    df["_slot"] = (ts.astype("int64") // (10 * 60 * 1_000_000_000)).astype(int)
     # ~0.3° grid cell ≈ 30 km — fine enough to be meaningful
-    df["_glat"] = (df["lat"] / 0.3).astype(int)
-    df["_glon"] = (df["lon"] / 0.3).astype(int)
+    df["_glat"] = (df["lat"] / 0.1).astype(int)
+    df["_glon"] = (df["lon"] / 0.1).astype(int)
 
     # count distinct vessels per cell×slot — fully vectorized
     cell_counts = (
@@ -236,10 +236,12 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     # wrapped bearing delta [-180, 180]
     df["bearing_delta"] = ((df["bearing"] - df["prev_bearing"] + 180) % 360) - 180
 
+    safe_time_gap = np.maximum(df["time_gap_min"], 1.0)
+
     # implied speed (knots) from position jump / time gap
     df["implied_speed_kn"] = np.where(
         df["time_gap_min"] > 0,
-        (df["dist_from_prev_km"] / 1.852) / (df["time_gap_min"] / 60.0),
+        (df["dist_from_prev_km"] / 1.852) / (safe_time_gap / 60.0),
         df["sog_knots"],
     )
 
@@ -439,10 +441,7 @@ def rule_based_flags(df: pd.DataFrame) -> pd.DataFrame:
 
     # spoofing: implied speed exceeds physical max for this vessel type
     max_spd = df["vessel_type"].map(VTYPE_MAX_SPEED).fillna(DEFAULT_MAX_SPEED)
-    df["rule_spoofing"] = (
-        (df["implied_speed_kn"] > max_spd) |
-        (df["dist_from_prev_km"] > SPOOF_DIST_KM)
-    ).astype(int)
+    df["rule_spoofing"] = (df["implied_speed_kn"] > max_spd).astype(int)
 
     # transshipment: stopped + another vessel nearby
     df["rule_transship"] = (
@@ -454,7 +453,7 @@ def rule_based_flags(df: pd.DataFrame) -> pd.DataFrame:
     df["rule_illegal_fish"] = (
         (df["vessel_type"] == "fishing") &
         (df["sog_knots"] < 2.0) &
-        (df["dist_from_median_km"] > 15)
+        (df["dist_from_median_km"] > 100)
     ).astype(int)
 
     df["rule_vote"] = (
@@ -470,7 +469,7 @@ def rule_based_flags(df: pd.DataFrame) -> pd.DataFrame:
 # 6. THRESHOLD SELECTION  (no label leakage)
 # ──────────────────────────────────────────────────────────────
 def select_threshold_from_scores(final_scores: pd.Series,
-                                 target_recall: float = 0.85) -> float:
+                                 std_multiplier: float = 2.5) -> float:
     """
     Choose a threshold purely from the distribution of final_score
     (no ground-truth labels used).
@@ -484,14 +483,13 @@ def select_threshold_from_scores(final_scores: pd.Series,
     Contamination is estimated from the score distribution's upper tail,
     not from labels.
     """
-    # estimate contamination from score distribution: upper 5% of scores
-    # are almost certainly anomalous (conservative)
-    scores = final_scores.values
-    # flag top (100 - percentile_threshold) percent
-    # budget = expected fraction of anomalies * recall buffer factor
-    # We'll target flagging ~top 5% of scores (generous for recall)
-    pct = np.percentile(scores, 95)   # flag scores above 95th percentile
-    return float(pct)
+    mean_score = final_scores.mean()
+    std_score = final_scores.std()
+
+    threshold = mean_score + (std_multiplier * std_score)
+
+
+    return float(np.clip(threshold, 0.4, 0.95))
 
 
 # ──────────────────────────────────────────────────────────────
