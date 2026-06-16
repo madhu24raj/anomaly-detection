@@ -1,6 +1,63 @@
 """
 AIS Vessel Stay Detection & Anomaly Detection - v3 (Self-Supervised)
 """
+def _corrupt(X: np.ndarray) -> np.ndarray:
+    """
+    Targeted corruption that mimics real AIS anomaly types instead of
+    pure column-shuffle (which is too easy and doesn't align with anomaly space).
+    """
+    rng  = np.random.default_rng(42)
+    Xf   = X.copy().astype(float)
+    n    = len(Xf)
+
+    # Column indices (must match FEATURE_COLS order)
+    IDX = {name: i for i, name in enumerate(FEATURE_COLS)}
+
+    # dark-ship: inject large time gaps
+    mask = rng.random(n) < 0.33
+    Xf[mask, IDX["time_gap_min"]] = rng.uniform(120, 600, mask.sum())
+
+    # spoofing: inject implausible position jumps
+    mask = rng.random(n) < 0.33
+    Xf[mask, IDX["dist_from_prev_km"]]  = rng.uniform(60, 300, mask.sum())
+    Xf[mask, IDX["implied_speed_kn"]]   = rng.uniform(80, 200, mask.sum())
+
+    # speed anomaly: spike speed vs baseline
+    mask = rng.random(n) < 0.33
+    Xf[mask, IDX["speed_vs_baseline"]]  = rng.uniform(5, 15, mask.sum())
+    Xf[mask, IDX["speed_delta"]]        = rng.uniform(15, 40, mask.sum())
+
+    return Xf
+
+
+def train_and_predict_self_supervised(df: pd.DataFrame) -> pd.DataFrame:
+    df   = df.copy()
+    X    = df[FEATURE_COLS].fillna(0).values.astype(float)
+    Xf   = _corrupt(X)
+
+    X_train = np.vstack([X, Xf])
+    y_train = np.hstack([np.zeros(len(X)), np.ones(len(Xf))])
+
+    clf = HistGradientBoostingClassifier(
+        max_iter=200,
+        learning_rate=0.05,
+        max_depth=6,
+        class_weight="balanced",
+        random_state=42,
+    )
+    clf.fit(X_train, y_train)
+
+    df["final_score"] = clf.predict_proba(X)[:, 1]
+    return df
+
+
+def select_dynamic_threshold(scores: pd.Series) -> float:
+    """
+    Use the 98th percentile of scores as the threshold — no hard floor.
+    This lets the threshold float down to where the actual score distribution
+    puts anomalies instead of clipping it above them.
+    """
+    return float(np.percentile(scores, 98.0))
 
 import numpy as np
 import pandas as pd
