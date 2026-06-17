@@ -1,0 +1,5 @@
+numpy>=1.24
+pandas>=2.0
+# Optional but recommended: bundles a coarse global land/sea grid so vessels
+# steer around land. If omitted, the simulator runs with land avoidance off.
+global-land-mask>=1.0.0
