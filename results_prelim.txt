@@ -1,3 +1,46 @@
+[staypoint.py]
+python staypoint.py
+Step 1: Stay detection...
+Step 2: Feature engineering...
+Step 3: Training per-vessel-type Isolation Forests...
+Step 4: Predicting anomalies...
+Step 5: Rule-based flags...
+Step 6: Evaluation...
+
+==================================================
+ANOMALY DETECTION — Classification Report
+==================================================
+              precision    recall  f1-score   support
+
+      Normal       1.00      0.98      0.99    665447
+   Anomalous       0.22      0.75      0.34      4746
+
+    accuracy                           0.98    670193
+   macro avg       0.61      0.87      0.66    670193
+weighted avg       0.99      0.98      0.98    670193
+
+F1 Score: 0.3363
+
+Rule-Based Layer Flags:
+  rule_dark_ship           :     9 flagged | precision=1.00
+  rule_spoofing            :    89 flagged | precision=0.56
+  rule_aggression          :  1012 flagged | precision=0.03
+  rule_illegal_fish        :  3749 flagged | precision=0.28
+
+Sample predicted anomalies:
+ entity_id           timestamp vessel_type  sog_knots  anomaly_score  is_anomalous anomaly_type
+         0 2025-01-01 14:30:00   passenger       5.60      -0.636132             0         none
+         0 2025-01-04 05:00:00   passenger      17.79      -0.643155             0         none
+         0 2025-01-05 09:30:00   passenger       3.92      -0.652297             0         none
+         1 2025-01-01 00:00:00     fishing       0.00      -0.587769             0         none
+         1 2025-01-01 04:15:00     fishing       1.92      -0.456148             0         none
+         1 2025-01-02 11:45:00     fishing       1.50      -0.599021             0         none
+         1 2025-01-02 21:00:00     fishing       1.68      -0.486515             0         none
+         1 2025-01-03 02:15:00     fishing       1.80      -0.477316             0         none
+         1 2025-01-03 15:30:00     fishing       1.78      -0.460152             0         none
+         1 2025-01-03 15:45:00     fishing       1.94      -0.454351             0         none
+
+
 [isolationforest.py]
 Step 1: Stay detection...
 Step 2: Feature engineering...

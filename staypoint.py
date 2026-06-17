@@ -2,7 +2,7 @@
 AIS Vessel Stay Detection & Anomaly Detection
 Data schema: entity_id, lat, lon, timestamp, vessel_type, sog_knots, is_anomalous, anomaly_type
 
-Usage:
+Usage:S
     df = pd.read_csv('ais_small.csv')
     results = run_pipeline(df)
 """
@@ -19,9 +19,9 @@ from folium.plugins import MarkerCluster
 
 
 # CONSTANTS
-STAY_RADIUS_KM        = 10    # CHANGED
-STAY_MIN_DURATION_M   = 15     # CHANGED 
-SPEED_STAY_THRESH     = 2.0    # CHANGED
+STAY_RADIUS_KM        = 1    # CHANGED
+STAY_MIN_DURATION_M   = 60     # CHANGED 
+SPEED_STAY_THRESH     = 2    # CHANGED
 AIS_GAP_THRESHOLD_MIN = 60      # minutes of silence before flagging "dark ship"
 SPOOF_DIST_KM         = 50      # absolute jump (km) considered implausible
 SPOOF_IMPLIED_KNOTS   = 60      # implied speed (knots) considered implausible
@@ -435,26 +435,27 @@ def visualize_staypoints(df: pd.DataFrame,
     print(f"Map with {len(stays)} staypoints saved to {output_html}")
 
 
-if __name__ == "__main__":
-
-    df = pd.read_csv("ais_small.csv")
-    # 1) run your existing stay detection
-    df = run_stay_detection(df)
-    # 2) call the visualization helper
-    visualize_staypoints(df, map_center=(21.5, -80.0), zoom_start=6, output_html="staypoints_cuba.html")
-
-
-# # QUICKSTART
 # if __name__ == "__main__":
-#     df = pd.read_csv("ais_small.csv")
-#     results = run_pipeline(df, contamination=0.02)
 
-#     # Show sample anomalies
-#     print("\nSample predicted anomalies:")
-#     print(
-#         results[results["pred_anomalous"]]
-#         [["entity_id", "timestamp", "vessel_type", "sog_knots",
-#           "anomaly_score", "is_anomalous", "anomaly_type"]]
-#         .head(10)
-#         .to_string(index=False)
-#     )
+#     df = pd.read_csv("ais_small.csv")
+#     # 1) run your existing stay detection
+#     df = run_stay_detection(df)
+#     # 2) call the visualization helper
+#     visualize_staypoints(df, map_center=(21.5, -80.0), zoom_start=6, output_html="staypoints_cuba.html")
+
+
+# QUICKSTART
+if __name__ == "__main__":
+    df = pd.read_csv("ais_small.csv")
+    results = run_pipeline(df, contamination=0.02)
+
+    # Show sample anomalies
+    print("\nSample predicted anomalies:")
+    print(
+        results[results["pred_anomalous"]]
+        [["entity_id", "timestamp", "vessel_type", "sog_knots",
+          "anomaly_score", "is_anomalous", "anomaly_type"]]
+        .head(10)
+        .to_string(index=False)
+    )
+
