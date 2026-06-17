@@ -303,6 +303,9 @@ def rule_based_flags(df: pd.DataFrame) -> pd.DataFrame:
         (df["implied_speed_knots"] > SPOOF_IMPLIED_KNOTS)
     )
 
+    df["rule_impossible_speed"] = df["sog_knots"] > 40.0 
+
+
     # aggression: abrupt, large change in both speed and heading at once
     df["rule_aggression"] = (
         (df["speed_delta"].abs() > 15) & (df["bearing_delta"].abs() > 120)
@@ -310,15 +313,29 @@ def rule_based_flags(df: pd.DataFrame) -> pd.DataFrame:
 
     # illegal_fish: fishing vessel loitering well outside its normal area
     df["rule_illegal_fish"] = (
-        (df["vessel_type"] == "fishing") &
         (df["sog_knots"] < 2) &
         (df["dist_from_median_km"] > 20)
     )
 
+    df["rule_transshipment"] = (
+    df.groupby("entity_id")["sog_knots"]
+      .rolling(window=4, min_periods=4)
+      .max()
+      .reset_index(level=0, drop=True) < 1.0
+)
+
+    # df["any_rule_flag"] = (
+    #     df["rule_dark_ship"] | df["rule_spoofing"] |
+    #     df["rule_aggression"] | df["rule_illegal_fish"]
+    #)
+
     df["any_rule_flag"] = (
-        df["rule_dark_ship"] | df["rule_spoofing"] |
-        df["rule_aggression"] | df["rule_illegal_fish"]
+        df["rule_impossible_speed"] | 
+        df["rule_aggression"] | 
+        df["rule_transshipment"] | 
+        df["rule_illegal_fish"]
     )
+    
     return df
 
 
