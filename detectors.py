@@ -14,9 +14,6 @@ Architecture:
   4. an ensemble that takes the max score across all detectors
 
 """
-
-from __future__ import annotations
-
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
