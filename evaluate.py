@@ -1,12 +1,12 @@
 """
-evaluate.py — Post-hoc evaluation against ground-truth labels.
+eval.py
+eval against ground-truth labels 
 
-Only called AFTER detection is complete.  Nothing here feeds back into
-the detectors — it is purely for measuring performance.
+""" 
+
 """
-
-from __future__ import annotations
-
+evaluate.py — Post-hoc evaluation against ground-truth labels.
+"""
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
@@ -88,9 +88,8 @@ def top_detections(results: pd.DataFrame, n: int = 20) -> pd.DataFrame:
 
 
 def print_report(metrics: dict, by_type: pd.DataFrame, top: pd.DataFrame) -> None:
-    print("\n" + "=" * 60)
+    print("\n")
     print("DETECTION RESULTS")
-    print("=" * 60)
     print(f"  Contacts evaluated : {metrics['n_contacts']}")
     print(f"  True anomalous     : {metrics['n_true_anomalous']} "
           f"({metrics['n_true_anomalous']/metrics['n_contacts']*100:.1f}%)")
@@ -106,15 +105,14 @@ def print_report(metrics: dict, by_type: pd.DataFrame, top: pd.DataFrame) -> Non
           f"FN={metrics['fn']} TN={metrics['tn']}")
 
     if not by_type.empty:
-        print("\n" + "-" * 60)
+        print("\n")
         print("RECALL BY ANOMALY TYPE")
-        print("-" * 60)
         print(by_type.to_string(index=False))
 
-    print("\n" + "-" * 60)
+    print("\n")
     print(f"TOP {len(top)} CONTACTS BY ANOMALY SCORE")
-    print("-" * 60)
+    
     with pd.option_context("display.max_columns", None, "display.width", 120,
                            "display.float_format", "{:.3f}".format):
         print(top.to_string())
-    print("=" * 60 + "\n")
+    print("\n")
