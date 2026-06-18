@@ -1,1 +1,109 @@
-git add .
+~ Journal ~
+
+#!/usr/bin/env python3
+__
+tracking requirements (TODO: make requirements.txt)
+pandas>=1.5
+
+numpy>=1.23
+
+scikit-learn>=1.2
+scikit-learn>=1.2
+
+scipy>=1.9
+pyarrow>=10.0   # (for parquet cachings)
+_____
+
+"contact" = vessel 
+
+overall flow
+raw AIS pings in -> features ->detector scoring -> ensemble -> regular eval
+
+ping level data is noisy
+anomaly decisions are contact level
+ML detectors for context-dep. oddities
+
+
+features ->
+core idea is to reduce each contact track to a compact feature row
+
+timestamp-ordered pings 
+
+dt_h
+segment distance
+speed in knots
+initial bearing
+heading delta
+
+derived motion features:
+
+mean/median/p95 speed
+speed std
+fraction slow
+fraction stopped
+straightness
+convex hull area
+heading variance
+heading change rate
+
+gap behavior:
+max gap length
+p95 gap length
+gap count
+gap fraction
+max implied speed
+max displacement during gap
+suspicious speed ping count
+
+geography:
+nearest port distance
+distance to sensitive strata
+time spent inside strata
+minimum distance to strata
+
+pairwise proximity across timestamps:
+nearest-neighbor distance
+mean nearest-neighbor distance
+hours within 1
+hours within 2
+sustained close episodes
+
+To use:
+RobustScaler
+Isolation Forest
+Local Outlier Factor
+
+
+
+normalize to [0, 1] and combine
+
+ensemble - ??? weighted max
+mean - can hide strong anomaly
+max - too sensitive??
+
+ensemble - keep a mean score for reference
+
+
+eval
+precision
+recall
+F1
+___
+AUROC
+average precision
+confusion matrix counts
+runtime
+
+
+
+feature caching for rerunning pipeline on the same dataset
+
+
+~
+some thresholds are heuristic
+proximity scaling may need tuning on larger datasets
+quadratic proximity step will not hold forever
+several features overlap by design - good, bad?
+production hardening still needed
+~
+
