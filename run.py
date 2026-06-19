@@ -70,6 +70,12 @@ DTYPE_MAP = {
     "is_anomalous": "int8",
     "anomaly_type": "category",
 }
+# timestamp is handled via parse_dates, not DTYPE_MAP -- pandas' C parser dtype
+# casting doesn't cover datetimes, so it would otherwise load as a raw Python
+# object column. At 432M rows that's ~60 bytes/row of pure waste versus an 8-byte
+# datetime64 (confirmed empirically: object=68B/row, datetime64=8B/row) -- on a
+# full 50k-vessel run that one column alone accounts for roughly 26GB of avoidable
+# memory, which is most of what pushed a 64GB r5.2xlarge into OOM.
 
 
 def load_data(path: str, use_labels: bool = True,
@@ -105,7 +111,9 @@ def load_data(path: str, use_labels: bool = True,
         chunks = []
         n_rows = 0
         t_start = time.time()
-        for i, chunk in enumerate(pd.read_csv(path, dtype=DTYPE_MAP, chunksize=chunksize)):
+        for i, chunk in enumerate(pd.read_csv(path, dtype=DTYPE_MAP,
+                                              parse_dates=["timestamp"],
+                                              chunksize=chunksize)):
             chunk = chunk.drop(columns=cols_to_drop, errors="ignore")
             chunks.append(chunk)
             n_rows += len(chunk)
@@ -117,7 +125,7 @@ def load_data(path: str, use_labels: bool = True,
         df = pd.concat(chunks, ignore_index=True)
         del chunks
     else:
-        df = pd.read_csv(path, dtype=DTYPE_MAP)
+        df = pd.read_csv(path, dtype=DTYPE_MAP, parse_dates=["timestamp"])
         df = df.drop(columns=cols_to_drop, errors="ignore")
 
     print(f"  {len(df):,} pings, {df['entity_id'].nunique():,} contacts, "

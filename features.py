@@ -398,8 +398,15 @@ def build_feature_matrix(df: pd.DataFrame,
     # returns (feat_df, interval_h, contamination)
     # interval estimated from modal inter-ping gap if not provided
     # contamination estimated from structural outliers (no labels used)
-    df = df.copy()
-    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+    #
+    # NOTE: deliberately no `df = df.copy()` here. At full scale (432M rows)
+    # that copy alone duplicates the entire input in memory before any work
+    # starts -- on a constrained instance that's the difference between fitting
+    # in RAM and OOM. The only in-place mutation below is the timestamp dtype
+    # fix, which is guarded to a no-op if the caller already parsed it (the CLI
+    # loader does, via parse_dates -- see run_detection.py).
+    if not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
 
     if nominal_interval_h is None:
         nominal_interval_h = estimate_interval_h(df)
