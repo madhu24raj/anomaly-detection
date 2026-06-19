@@ -1,28 +1,20 @@
+#!/usr/bin/env python3
 """
-run.py: 
-will be entrypoint for the maritime anomaly detector
+run_detection.py — Entry point for the maritime anomaly detector.
 
-~ terminal prompts ~
-
-metrics against ground truth:
+Usage
+-----
+# Run on the small test dataset (prints metrics against ground truth):
 python run_detection.py ais_small.csv
 
-save to csv:
+# Save scored output to a CSV:
 python run_detection.py ais_small.csv --output scores.csv
 
+# Tune threshold and contamination:
 python run_detection.py ais_small.csv --threshold 0.45 --contamination 0.05
 
-real world (suppress ground-truth eval) 
+# Suppress ground-truth evaluation (simulates real deployment):
 python run_detection.py ais_small.csv --no-eval
-"""
-import argparse
-import os
-import sys
-import time
-
-import pandas as pd
-
-"""
 
 Options
 -------
@@ -34,6 +26,16 @@ Options
   --cache-features P  Cache the feature matrix to PATH (parquet) and reuse it.
 """
 
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+import time
+
+import pandas as pd
+
+# Local modules
 sys.path.insert(0, os.path.dirname(__file__))
 from features  import build_feature_matrix
 from detectors import detect
@@ -45,25 +47,82 @@ def parse_args(argv=None):
     p.add_argument("input", help="Path to AIS CSV (entity_id, lat, lon, timestamp [, labels])")
     p.add_argument("--output",        default=None,  help="Write scored results to CSV")
     p.add_argument("--threshold",     type=float, default=0.50)
-    p.add_argument("--contamination", type=float, default=0.05,
-                   help="Expected anomaly fraction (used by IF/LOF)")
-    p.add_argument("--interval",      type=float, default=0.25,
-                   help="Ping cadence in hours (0.25 = 15 min)")
+    p.add_argument("--contamination", type=float, default=None,
+                   help="Expected anomaly fraction for IF/LOF (default: auto-estimated from data)")
+    p.add_argument("--interval",      type=float, default=None,
+                   help="Ping cadence in hours, e.g. 0.0833 = 5 min (default: auto-detected from data)")
     p.add_argument("--no-eval",       action="store_true",
                    help="Skip evaluation (don't look at ground-truth columns)")
     p.add_argument("--cache-features", default=None, metavar="PATH",
                    help="Cache/load feature matrix as parquet")
+    p.add_argument("--chunksize",     type=int, default=None,
+                   help="Stream CSV in chunks of this many rows (use for 50k+ "
+                        "vessel runs to avoid memory spikes, e.g. --chunksize 5000000)")
     return p.parse_args(argv)
 
 
-def load_data(path: str, use_labels: bool = True) -> pd.DataFrame:
-    print(f"Loading {path}")
-    df = pd.read_csv(path)
+DTYPE_MAP = {
+    "entity_id":   "int32",
+    "lat":         "float32",
+    "lon":         "float32",
+    "vessel_type": "category",
+    "sog_knots":   "float32",
+    "is_anomalous": "int8",
+    "anomaly_type": "category",
+}
+
+
+def load_data(path: str, use_labels: bool = True,
+              chunksize: int | None = None) -> pd.DataFrame:
+    """
+    Load the AIS CSV with memory-efficient dtypes.
+
+    For large files (50k+ vessels, gzip-compressed), use chunksize to stream
+    the read and avoid the 2-3x memory spike pandas' default parser causes
+    during dtype inference on a 20GB+ decompressed CSV.
+
+    NOTE on .gz specifically: gzip decompression in Python is single-threaded
+    and ~50-100 MB/s, so a 5GB .gz (~20GB decompressed) should take minutes,
+    not hours, to decompress. If a run hangs for hours at "Loading", that
+    points to memory pressure/swapping (RAM filling up, OS swapping to disk,
+    which is dramatically slower than RAM) rather than decompression speed
+    itself -- chunksize directly addresses that by never materializing more
+    than `chunksize` rows of the raw text at once.
+    """
+    print(f"Loading {path} ...")
+
+    cols_to_drop = [] if use_labels else ["is_anomalous", "anomaly_type"]
+
+    # Auto-enable chunked reading for compressed files if not explicitly set --
+    # decompression + full-file dtype inference on a .gz is exactly the
+    # memory-spike scenario chunksize exists to avoid.
+    if chunksize is None and path.endswith((".gz", ".csv.gz")):
+        chunksize = 2_000_000
+        print(f"  (auto-enabling --chunksize {chunksize:,} for compressed input)")
+
+    if chunksize:
+        print(f"  Streaming in chunks of {chunksize:,} rows...")
+        chunks = []
+        n_rows = 0
+        t_start = time.time()
+        for i, chunk in enumerate(pd.read_csv(path, dtype=DTYPE_MAP, chunksize=chunksize)):
+            chunk = chunk.drop(columns=cols_to_drop, errors="ignore")
+            chunks.append(chunk)
+            n_rows += len(chunk)
+            elapsed = time.time() - t_start
+            print(f"    ... chunk {i+1}: {n_rows:,} rows read so far "
+                  f"[{elapsed:.0f}s elapsed, {n_rows/max(elapsed,0.01):,.0f} rows/s]",
+                  flush=True)
+        print("  Concatenating chunks...", flush=True)
+        df = pd.concat(chunks, ignore_index=True)
+        del chunks
+    else:
+        df = pd.read_csv(path, dtype=DTYPE_MAP)
+        df = df.drop(columns=cols_to_drop, errors="ignore")
+
     print(f"  {len(df):,} pings, {df['entity_id'].nunique():,} contacts, "
           f"columns: {list(df.columns)}")
-
-    if not use_labels:
-        df = df.drop(columns=["is_anomalous", "anomaly_type"], errors="ignore")
+    print(f"  Memory usage: {df.memory_usage(deep=True).sum() / 1e9:.2f} GB")
 
     return df
 
@@ -72,31 +131,45 @@ def main(argv=None):
     args = parse_args(argv)
     t0   = time.time()
 
-    df = load_data(args.input, use_labels=not args.no_eval)
+    df = load_data(args.input, use_labels=not args.no_eval, chunksize=args.chunksize)
 
-    # Feature extraction    
+    # ── Feature extraction ────────────────────────────────────────────────
+    interval_h    = args.interval       # may be None → auto-detected below
+    contamination = args.contamination  # may be None → auto-estimated below
+
     if args.cache_features and os.path.exists(args.cache_features):
         print(f"Loading cached features from {args.cache_features}")
         feat = pd.read_parquet(args.cache_features)
+        # Parquet cache doesn't store the estimates; re-derive if not supplied
+        if interval_h is None or contamination is None:
+            from features import estimate_interval_h, estimate_contamination
+            if interval_h is None:
+                interval_h = estimate_interval_h(df)
+                print(f"  Auto-detected ping interval : {interval_h*60:.1f} min")
+            if contamination is None:
+                contamination = estimate_contamination(df, interval_h)
+                print(f"  Auto-estimated contamination: {contamination:.3f}")
     else:
-        print("\nExtracting features")
-        feat = build_feature_matrix(df, nominal_interval_h=args.interval)
+        print("\nExtracting features...")
+        feat, interval_h, contamination = build_feature_matrix(
+            df, nominal_interval_h=interval_h)
         if args.cache_features:
             feat.to_parquet(args.cache_features)
             print(f"  Features cached → {args.cache_features}")
 
     print(f"  Feature matrix: {feat.shape[0]} contacts × "
           f"{feat.shape[1]} features  [{time.time()-t0:.1f}s]")
+    print(f"  Using interval={interval_h*60:.1f} min, contamination={contamination:.3f}")
 
-    # Detection 
-    print("\nRunning detectors")
+    # ── Detection ─────────────────────────────────────────────────────────
+    print("\nRunning detectors...")
     results = detect(feat,
-                     nominal_interval_h=args.interval,
-                     contamination=args.contamination,
+                     nominal_interval_h=interval_h,
+                     contamination=contamination,
                      threshold=args.threshold)
     print(f"  Done  [{time.time()-t0:.1f}s]")
 
-    # Evaluation
+    # ── Evaluation ────────────────────────────────────────────────────────
     if not args.no_eval and "true_anomalous" in results.columns:
         metrics  = evaluate(results, threshold=args.threshold)
         by_type  = per_type_breakdown(results, threshold=args.threshold)
@@ -107,7 +180,7 @@ def main(argv=None):
         print(f"\nTop flagged contacts (threshold={args.threshold}):")
         print(top.to_string())
 
-    # Save
+    # ── Save ──────────────────────────────────────────────────────────────
     if args.output:
         results.to_csv(args.output)
         print(f"Scores written → {args.output}")
