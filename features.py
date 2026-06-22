@@ -14,23 +14,6 @@ KM_PER_NM = 1.852
 CLOSE_RANGE_NM = 1.0
 SHADOW_RANGE_NM = 2.0
 
-# caribbean MPAs / sensitive zones (lon, lat, radius_km)
-# radii are approximate, sourced from public MDA literature
-STRATA = [
-    (-80.50, 23.60, 45.0),
-    (-82.50, 15.50, 60.0),
-    (-66.50, 12.50, 70.0),
-    (-78.20, 17.10, 40.0),
-]
-
-# major caribbean ports (lon, lat)
-PORTS_LONLAT = [
-    (-80.19, 25.77), (-82.38, 23.13), (-77.34, 25.06),
-    (-76.79, 17.99), (-69.93, 18.47), (-66.10, 18.47),
-    (-68.93, 12.11), (-61.52, 10.65), (-59.62, 13.10),
-    (-75.51, 10.40), (-79.90,  9.36), (-86.85, 21.16),
-]
-
 def haversine_km(lat1, lon1, lat2, lon2) -> np.ndarray:
     lat1, lat2 = np.radians(lat1), np.radians(lat2)
     dlat = lat2 - lat1
@@ -40,7 +23,6 @@ def haversine_km(lat1, lon1, lat2, lon2) -> np.ndarray:
 
 
 def bearing_deg(lat1, lon1, lat2, lon2) -> np.ndarray:
-    """Initial bearing (°, 0=N, clockwise) from point 1 → point 2."""
     lat1, lat2 = np.radians(lat1), np.radians(lat2)
     dlon = np.radians(lon2 - lon1)
     x = np.sin(dlon) * np.cos(lat2)
@@ -48,12 +30,8 @@ def bearing_deg(lat1, lon1, lat2, lon2) -> np.ndarray:
     return (np.degrees(np.arctan2(x, y)) + 360) % 360
 
 
-# ── per-ping kinematics ──────────────────────────────────────────────────────
 
 def compute_kinematics(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    adds per-ping kinematics cols to a single vessel df
-    """
     df = df.sort_values("timestamp").copy()
     n = len(df)
 
@@ -87,6 +65,14 @@ def compute_kinematics(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+
+#major ports (lon, lat)
+PORTS_LONLAT = [
+    (-80.19, 25.77), (-82.38, 23.13), (-77.34, 25.06),
+    (-76.79, 17.99), (-69.93, 18.47), (-66.10, 18.47),
+    (-68.93, 12.11), (-61.52, 10.65), (-59.62, 13.10),
+    (-75.51, 10.40), (-79.90,  9.36), (-86.85, 21.16),]
+
 _PORT_TREE = None
 
 def _port_tree():
@@ -100,18 +86,22 @@ def _port_tree():
 
 
 def min_dist_to_ports_nm(lat: np.ndarray, lon: np.ndarray) -> float:
-    """closest approach to any reference port, in nm"""
     q_lat = np.radians(lat)
     q_lon = np.radians(lon)
     dist_rad, _ = _port_tree().query(np.column_stack([q_lat, q_lon]), k=1)
     dist_nm = dist_rad.flatten() * EARTH_R_KM / KM_PER_NM
     return float(dist_nm.min())
 
+# expand list of strata as needed
+# defined as lat, lon, radius_km
+STRATA = [
+    (-80.50, 23.60, 45.0),
+    (-82.50, 15.50, 60.0),
+    (-66.50, 12.50, 70.0),
+    (-78.20, 17.10, 40.0),
+]
 
-def strata_proximity_features(lat: np.ndarray, lon: np.ndarray,
-                               dt_h: Optional[np.ndarray] = None
-                               ) -> dict:
-    """distance/dwell features relative to known sensitive zones"""
+def strata_proximity_features(lat: np.ndarray, lon: np.ndarray, dt_h: Optional[np.ndarray] = None ) -> dict:
     n = len(lat)
     min_d_nm = np.full(n, np.inf)
 
@@ -124,7 +114,6 @@ def strata_proximity_features(lat: np.ndarray, lon: np.ndarray,
     frac_inside = float(np.mean(min_d_nm * KM_PER_NM <= np.array(
         [s[2] for s in STRATA]).max()))  # rough
 
-    # More precise: recompute per stratum
     inside_any = np.zeros(n, dtype=bool)
     for s_lon, s_lat, s_r_km in STRATA:
         inside_any |= haversine_km(lat, lon, s_lat, s_lon) <= s_r_km
@@ -142,9 +131,7 @@ def strata_proximity_features(lat: np.ndarray, lon: np.ndarray,
     }
 
 
-def gap_features(dt_h: np.ndarray, speed_kt: np.ndarray,
-                 dist_km: np.ndarray, nominal_interval_h: float) -> dict:
-    """gap/silence features - a gap is anything > 2x the nominal cadence"""
+def gap_features(dt_h: np.ndarray, speed_kt: np.ndarray, dist_km: np.ndarray, nominal_interval_h: float) -> dict:
     valid_dt = dt_h[~np.isnan(dt_h)]
     if len(valid_dt) == 0:
         return {k: 0.0 for k in [
@@ -155,14 +142,11 @@ def gap_features(dt_h: np.ndarray, speed_kt: np.ndarray,
     is_gap      = valid_dt > threshold_h
     n_gaps      = int(is_gap.sum())
 
-    # Implied speed during each gap: dist / time (already in speed_kt for pings,
-    # but we want to isolate the gap pings specifically)
     gap_speeds = speed_kt[~np.isnan(speed_kt)]
     gap_speeds_gaps = speed_kt[1:][~np.isnan(dt_h[1:])]  # align
-    # Max implied speed across all pings — both gap and non-gap (for spoofing)
+    # for spoofing
     max_speed = float(np.nanmax(speed_kt)) if np.any(~np.isnan(speed_kt)) else 0.0
 
-    # Max displacement in a single gap (nm)
     gap_mask   = (~np.isnan(dt_h[1:])) & (dt_h[1:] > threshold_h)
     if gap_mask.any():
         gap_d_nm = dist_km[1:][gap_mask] / KM_PER_NM
@@ -170,12 +154,9 @@ def gap_features(dt_h: np.ndarray, speed_kt: np.ndarray,
     else:
         max_gap_disp = 0.0
 
-    # How many pings show a suspicious implied speed (> 60 kt).
-    # A single GPS jitter can spike the *max* once; genuine position manipulation
-    # produces at least 2 such pings (the jump there + the jump back).
-    SUSPICIOUS_KT    = 60.0
-    valid_spd_arr    = speed_kt[~np.isnan(speed_kt)]
-    n_suspicious     = int((valid_spd_arr > SUSPICIOUS_KT).sum())
+    SUSPICIOUS_KT = 60.0
+    valid_spd_arr = speed_kt[~np.isnan(speed_kt)]
+    n_suspicious= int((valid_spd_arr > SUSPICIOUS_KT).sum())
 
     return {
         "max_gap_h":                float(valid_dt.max()),
@@ -188,10 +169,7 @@ def gap_features(dt_h: np.ndarray, speed_kt: np.ndarray,
     }
 
 
-def motion_features(lat: np.ndarray, lon: np.ndarray,
-                    speed_kt: np.ndarray, heading_delta: np.ndarray,
-                    dt_h: np.ndarray) -> dict:
-    """summarize movement patterns over full track"""
+def motion_features(lat: np.ndarray, lon: np.ndarray, speed_kt: np.ndarray, heading_delta: np.ndarray, dt_h: np.ndarray) -> dict:
     valid_spd = speed_kt[~np.isnan(speed_kt)]
 
     if len(valid_spd) == 0:
@@ -200,28 +178,26 @@ def motion_features(lat: np.ndarray, lon: np.ndarray,
             "frac_slow", "frac_stopped", "straightness", "hull_area_deg2",
             "heading_variance", "heading_change_rate"]}
 
-    slow_thresh    = 2.0   # kt
+    slow_thresh = 2.0   # kt
     stopped_thresh = 0.5   # kt
 
-    # Path straightness: net displacement / total path length
+    # path straightness: net displacement / total path length
     net_km = haversine_km(lat[0], lon[0], lat[-1], lon[-1])
     path_km = float(np.nansum(np.where(~np.isnan(speed_kt[1:]),
                                         haversine_km(lat[:-1], lon[:-1],
                                                      lat[1:], lon[1:]), 0)))
     straightness = float(net_km / path_km) if path_km > 0 else 1.0
 
-    # Convex hull area (degrees²) — small = loitering, large = transiting
     try:
         from scipy.spatial import ConvexHull
         pts = np.column_stack([lon, lat])
         if len(np.unique(pts, axis=0)) >= 3:
-            hull_area = float(ConvexHull(pts).volume)  # 2D → area
+            hull_area = float(ConvexHull(pts).volume)  # 2D -> area
         else:
             hull_area = 0.0
     except Exception:
         hull_area = 0.0
 
-    # Heading erraticism
     valid_hdg_d = heading_delta[~np.isnan(heading_delta)]
     hdg_var   = float(np.var(valid_hdg_d)) if len(valid_hdg_d) else 0.0
     hdg_rate  = float(np.mean(np.abs(valid_hdg_d))) if len(valid_hdg_d) else 0.0
@@ -231,7 +207,7 @@ def motion_features(lat: np.ndarray, lon: np.ndarray,
     if total_h > 0:
         slow_h    = float(np.nansum(np.where(speed_kt[1:] < slow_thresh,    dt_h[1:], 0)))
         stopped_h = float(np.nansum(np.where(speed_kt[1:] < stopped_thresh, dt_h[1:], 0)))
-        frac_slow    = slow_h    / total_h
+        frac_slow = slow_h/ total_h
         frac_stopped = stopped_h / total_h
     else:
         frac_slow = frac_stopped = 0.0
@@ -253,17 +229,11 @@ def motion_features(lat: np.ndarray, lon: np.ndarray,
 def proximity_features_all(df: pd.DataFrame, timestamps: np.ndarray,
                             interval_h: float, max_radius_nm: float = 2.0) -> pd.DataFrame:
     """
-    nearest-neighbor proximity features across all timestamps.
+    nearest-neighbor proximity features across all timestamps
 
-    Builds a single BallTree per timestep (not per vessel-pair), then asks
-    each point for its nearest neighbor in one batched query. This is the
-    standard way to do this -- O(C log C) per timestep instead of O(C^2) --
-    and avoids the per-call Python/sklearn overhead that dominates if you
-    instead build many small trees (one per spatial cell, say): at sparse
-    vessel densities cell-bucketing trades a big O(C^2) numeric cost for a
-    larger number of small-but-overhead-heavy calls, which is worse in
-    practice. A single batched k=2 query keeps both the algorithmic
-    complexity and the call count low.
+    Builds a single BallTree per timestep (not per vessel-pair), then obtains
+    each point for its nearest neighbor in one batched query.
+    Done in O(C log C) per timestep (low call count) 
     """
     contacts = df["entity_id"].unique()
     n_c = len(contacts)
@@ -317,8 +287,8 @@ def proximity_features_all(df: pd.DataFrame, timestamps: np.ndarray,
             both_slow = is_close_now & (spds < 1.0) & (spds[nn_idx_local] < 1.0)
             coslow[gi_arr[both_slow]] += interval_h
 
-        # sustained-episode bookkeeping: vectorized per-step update, still
-        # needs the per-vessel running state carried across timesteps
+        # vectorized per-step update, still
+        # needs per-vessel running state carried across timesteps
         close_dur[gi_arr[is_close_now]] += interval_h
         ended = gi_arr[~is_close_now]
         end_mask = was_close[ended] & (close_dur[ended] >= EPISODE_MIN_H)
@@ -327,8 +297,7 @@ def proximity_features_all(df: pd.DataFrame, timestamps: np.ndarray,
 
         was_close_new = np.zeros(n_c, dtype=bool)
         was_close_new[gi_arr] = is_close_now
-        # vessels not present this timestep keep their previous was_close
-        # state untouched (they simply don't get an episode tick this step)
+
         present_mask = np.zeros(n_c, dtype=bool)
         present_mask[gi_arr] = True
         was_close = np.where(present_mask, was_close_new, was_close)
@@ -352,7 +321,7 @@ def proximity_features_all(df: pd.DataFrame, timestamps: np.ndarray,
 
 
 def estimate_interval_h(df: pd.DataFrame) -> float:
-    # modal inter-ping gap, bucketed to 5min slots to avoid skew from long silences
+    # bucketed to 5min slots (avoid skew from long silences)
     gaps = (
         df.sort_values(["entity_id", "timestamp"])
           .groupby("entity_id")["timestamp"]
@@ -361,17 +330,16 @@ def estimate_interval_h(df: pd.DataFrame) -> float:
           .dropna()
           .div(3600.0)
     )
-    # Round to nearest 5-min slot, take mode among gaps < 2 h
     buckets = (gaps * 12).round() / 12
     interval = float(buckets[buckets < 2.0].mode().iloc[0])
     return interval
 
 
 def estimate_contamination(df: pd.DataFrame, interval_h: float) -> float:
-    """
-    Rough contamination estimate - flags vessels with large gaps or impossible
-    implied speeds, vectorized via groupby/transform rather than a per-vessel
-    Python loop (which doubles the cost of the whole pipeline at 50k+ vessels).
+    """    
+    current optimization : vectorized via groupby/transform rather than a per-vessel
+
+    TODO: Python loop (doubles the cost of the whole pipeline)
     """
     d = df.sort_values(["entity_id", "timestamp"]).copy()
     g = d.groupby("entity_id", sort=False)
@@ -381,8 +349,7 @@ def estimate_contamination(df: pd.DataFrame, interval_h: float) -> float:
 
     dlat = g["lat"].diff()
     dlon = g["lon"].diff()
-    # approx haversine via small-angle is fine here; this is only a rough
-    # screen to set contamination, not a detector input
+
     dist_km = haversine_km(d["lat"].shift(1), d["lon"].shift(1), d["lat"], d["lon"])
     with np.errstate(divide="ignore", invalid="ignore"):
         spd = np.where(dt_h > 0, dist_km / dt_h.to_numpy() / KM_PER_NM, 0.0)
@@ -396,15 +363,7 @@ def estimate_contamination(df: pd.DataFrame, interval_h: float) -> float:
 def build_feature_matrix(df: pd.DataFrame,
                          nominal_interval_h: float = None) -> tuple:
     # returns (feat_df, interval_h, contamination)
-    # interval estimated from modal inter-ping gap if not provided
-    # contamination estimated from structural outliers (no labels used)
-    #
-    # NOTE: deliberately no `df = df.copy()` here. At full scale (432M rows)
-    # that copy alone duplicates the entire input in memory before any work
-    # starts -- on a constrained instance that's the difference between fitting
-    # in RAM and OOM. The only in-place mutation below is the timestamp dtype
-    # fix, which is guarded to a no-op if the caller already parsed it (the CLI
-    # loader does, via parse_dates -- see run_detection.py).
+    
     if not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
         df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
 
@@ -419,10 +378,7 @@ def build_feature_matrix(df: pd.DataFrame,
     label_cols = [c for c in ["is_anomalous", "anomaly_type"] if c in df.columns]
 
     all_feats = []
-    kin_chunks = []   # reuse the kinematics already computed below, instead of
-                       # recomputing them in a second full pass over all vessels
-                       # only keep the columns proximity_features_all actually needs,
-                       # and use float32 -- this roughly halves memory at 50k+ vessel scale
+    kin_chunks = []   #reuse 
 
     for cid, grp in df.groupby("entity_id"):
         grp = grp.sort_values("timestamp").reset_index(drop=True)
@@ -447,7 +403,7 @@ def build_feature_matrix(df: pd.DataFrame,
         row.update(strata_proximity_features(lat, lon, dt_h))
         row["min_port_dist_nm"] = min_dist_to_ports_nm(lat, lon)
 
-        # carry labels if they exist, purely for eval later
+        # carry (purely for eval later)
         if label_cols:
             if "is_anomalous" in grp.columns:
                 row["true_anomalous"] = int(grp["is_anomalous"].max())
@@ -460,22 +416,14 @@ def build_feature_matrix(df: pd.DataFrame,
 
     feat_df = pd.DataFrame(all_feats).set_index("entity_id")
 
-    # Grab what's still needed from df, then drop the reference so the
-    # original (un-slimmed, float64) dataframe can be garbage collected
-    # before we build df_kin -- avoids holding both in memory at once,
-    # which matters once you're at 50k vessels / hundreds of millions of rows.
     timestamps = df["timestamp"].unique()
     del df
 
-    # proximity features - separate pass, expensive.
-    # df_kin reuses the per-vessel kinematics computed above (just lat/lon/
-    # timestamp/speed_kt, the only columns the proximity step needs) instead
-    # of recomputing compute_kinematics() for every vessel a second time.
     df_kin = pd.concat(kin_chunks, ignore_index=True)
     del kin_chunks
 
     print(f"  Computing pairwise proximity across {len(timestamps)} timestamps "
-          f"× {len(feat_df)} contacts...")
+          f"× {len(feat_df)} contacts")
     prox_df = proximity_features_all(df_kin, timestamps, nominal_interval_h)
     prox_df = prox_df.set_index("entity_id")
 

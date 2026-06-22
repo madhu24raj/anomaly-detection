@@ -25,9 +25,6 @@ Options
   --no-eval           Skip evaluation against ground-truth labels.
   --cache-features P  Cache the feature matrix to PATH (parquet) and reuse it.
 """
-
-from __future__ import annotations
-
 import argparse
 import os
 import sys
@@ -70,12 +67,6 @@ DTYPE_MAP = {
     "is_anomalous": "int8",
     "anomaly_type": "category",
 }
-# timestamp is handled via parse_dates, not DTYPE_MAP -- pandas' C parser dtype
-# casting doesn't cover datetimes, so it would otherwise load as a raw Python
-# object column. At 432M rows that's ~60 bytes/row of pure waste versus an 8-byte
-# datetime64 (confirmed empirically: object=68B/row, datetime64=8B/row) -- on a
-# full 50k-vessel run that one column alone accounts for roughly 26GB of avoidable
-# memory, which is most of what pushed a 64GB r5.2xlarge into OOM.
 
 
 def load_data(path: str, use_labels: bool = True,
@@ -83,31 +74,19 @@ def load_data(path: str, use_labels: bool = True,
     """
     Load the AIS CSV with memory-efficient dtypes.
 
-    For large files (50k+ vessels, gzip-compressed), use chunksize to stream
-    the read and avoid the 2-3x memory spike pandas' default parser causes
-    during dtype inference on a 20GB+ decompressed CSV.
-
-    NOTE on .gz specifically: gzip decompression in Python is single-threaded
-    and ~50-100 MB/s, so a 5GB .gz (~20GB decompressed) should take minutes,
-    not hours, to decompress. If a run hangs for hours at "Loading", that
-    points to memory pressure/swapping (RAM filling up, OS swapping to disk,
-    which is dramatically slower than RAM) rather than decompression speed
-    itself -- chunksize directly addresses that by never materializing more
-    than `chunksize` rows of the raw text at once.
+    For large file, use chunksize to stream
     """
-    print(f"Loading {path} ...")
+    print(f"Loading {path} :")
 
     cols_to_drop = [] if use_labels else ["is_anomalous", "anomaly_type"]
 
-    # Auto-enable chunked reading for compressed files if not explicitly set --
-    # decompression + full-file dtype inference on a .gz is exactly the
-    # memory-spike scenario chunksize exists to avoid.
+    # Auto-enable 
     if chunksize is None and path.endswith((".gz", ".csv.gz")):
         chunksize = 2_000_000
         print(f"  (auto-enabling --chunksize {chunksize:,} for compressed input)")
 
     if chunksize:
-        print(f"  Streaming in chunks of {chunksize:,} rows...")
+        print(f"  Streaming in chunks of {chunksize:,} rows")
         chunks = []
         n_rows = 0
         t_start = time.time()
@@ -118,10 +97,10 @@ def load_data(path: str, use_labels: bool = True,
             chunks.append(chunk)
             n_rows += len(chunk)
             elapsed = time.time() - t_start
-            print(f"    ... chunk {i+1}: {n_rows:,} rows read so far "
+            print(f"     chunk {i+1}: {n_rows:,} rows read so far "
                   f"[{elapsed:.0f}s elapsed, {n_rows/max(elapsed,0.01):,.0f} rows/s]",
                   flush=True)
-        print("  Concatenating chunks...", flush=True)
+        print("  Concatenating chunks", flush=True)
         df = pd.concat(chunks, ignore_index=True)
         del chunks
     else:
@@ -141,14 +120,14 @@ def main(argv=None):
 
     df = load_data(args.input, use_labels=not args.no_eval, chunksize=args.chunksize)
 
-    # ── Feature extraction ────────────────────────────────────────────────
-    interval_h    = args.interval       # may be None → auto-detected below
-    contamination = args.contamination  # may be None → auto-estimated below
+    interval_h    = args.interval       # may be None 
+    contamination = args.contamination  # may be None 
 
     if args.cache_features and os.path.exists(args.cache_features):
         print(f"Loading cached features from {args.cache_features}")
         feat = pd.read_parquet(args.cache_features)
-        # Parquet cache doesn't store the estimates; re-derive if not supplied
+
+        # re-derive Parquet cache if not supplied 
         if interval_h is None or contamination is None:
             from features import estimate_interval_h, estimate_contamination
             if interval_h is None:
@@ -158,7 +137,7 @@ def main(argv=None):
                 contamination = estimate_contamination(df, interval_h)
                 print(f"  Auto-estimated contamination: {contamination:.3f}")
     else:
-        print("\nExtracting features...")
+        print("\nExtracting features")
         feat, interval_h, contamination = build_feature_matrix(
             df, nominal_interval_h=interval_h)
         if args.cache_features:
@@ -170,7 +149,7 @@ def main(argv=None):
     print(f"  Using interval={interval_h*60:.1f} min, contamination={contamination:.3f}")
 
     # ── Detection ─────────────────────────────────────────────────────────
-    print("\nRunning detectors...")
+    print("\nRunning detectors")
     results = detect(feat,
                      nominal_interval_h=interval_h,
                      contamination=contamination,

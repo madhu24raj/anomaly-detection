@@ -1,0 +1,12 @@
+ DETECTION RESULTS
+  Contacts evaluated : 50000
+  True anomalous     : 950 (1.9%)
+  Flagged by detector: 1053
+
+  Precision          : 0.876
+  Recall             : 0.972
+  F1                 : 0.922
+  AUROC              : 1.000
+  Average Precision  : 0.990
+
+  Confusion: TP=923 FP=130 FN=27 TN=48920

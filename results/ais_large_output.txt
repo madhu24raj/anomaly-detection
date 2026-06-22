@@ -1,0 +1,293 @@
+Loading ais_large.csv.gz 
+  Streaming in chunks of 2,000,000 rows
+     chunk 1: 2,000,000 rows read so far [2s elapsed, 895,692 rows/s]
+     chunk 2: 4,000,000 rows read so far [4s elapsed, 901,727 rows/s]
+     chunk 3: 6,000,000 rows read so far [7s elapsed, 909,288 rows/s]
+     chunk 4: 8,000,000 rows read so far [9s elapsed, 913,131 rows/s]
+     chunk 5: 10,000,000 rows read so far [11s elapsed, 916,282 rows/s]
+     chunk 6: 12,000,000 rows read so far [13s elapsed, 917,200 rows/s]
+     chunk 7: 14,000,000 rows read so far [15s elapsed, 917,235 rows/s]
+     chunk 8: 16,000,000 rows read so far [17s elapsed, 917,070 rows/s]
+     chunk 9: 18,000,000 rows read so far [20s elapsed, 916,559 rows/s]
+     chunk 10: 20,000,000 rows read so far [22s elapsed, 916,555 rows/s]
+     chunk 11: 22,000,000 rows read so far [24s elapsed, 916,960 rows/s]
+     chunk 12: 24,000,000 rows read so far [26s elapsed, 917,263 rows/s]
+     chunk 13: 26,000,000 rows read so far [28s elapsed, 917,678 rows/s]
+     chunk 14: 28,000,000 rows read so far [31s elapsed, 917,821 rows/s]
+     chunk 15: 30,000,000 rows read so far [33s elapsed, 918,147 rows/s]
+     chunk 16: 32,000,000 rows read so far [35s elapsed, 918,486 rows/s]
+     chunk 17: 34,000,000 rows read so far [37s elapsed, 918,719 rows/s]
+     chunk 18: 36,000,000 rows read so far [39s elapsed, 918,655 rows/s]
+     chunk 19: 38,000,000 rows read so far [41s elapsed, 918,792 rows/s]
+     chunk 20: 40,000,000 rows read so far [44s elapsed, 918,934 rows/s]
+     chunk 21: 42,000,000 rows read so far [46s elapsed, 918,934 rows/s]
+     chunk 22: 44,000,000 rows read so far [48s elapsed, 919,137 rows/s]
+     chunk 23: 46,000,000 rows read so far [50s elapsed, 919,210 rows/s]
+     chunk 24: 48,000,000 rows read so far [52s elapsed, 919,326 rows/s]
+     chunk 25: 50,000,000 rows read so far [54s elapsed, 919,167 rows/s]
+     chunk 26: 52,000,000 rows read so far [57s elapsed, 919,103 rows/s]
+     chunk 27: 54,000,000 rows read so far [59s elapsed, 918,849 rows/s]
+     chunk 28: 56,000,000 rows read so far [61s elapsed, 918,853 rows/s]
+     chunk 29: 58,000,000 rows read so far [63s elapsed, 919,005 rows/s]
+     chunk 30: 60,000,000 rows read so far [65s elapsed, 919,113 rows/s]
+     chunk 31: 62,000,000 rows read so far [67s elapsed, 919,157 rows/s]
+     chunk 32: 64,000,000 rows read so far [70s elapsed, 919,127 rows/s]
+     chunk 33: 66,000,000 rows read so far [72s elapsed, 919,223 rows/s]
+     chunk 34: 68,000,000 rows read so far [74s elapsed, 919,327 rows/s]
+     chunk 35: 70,000,000 rows read so far [76s elapsed, 919,349 rows/s]
+     chunk 36: 72,000,000 rows read so far [78s elapsed, 919,442 rows/s]
+     chunk 37: 74,000,000 rows read so far [80s elapsed, 919,463 rows/s]
+     chunk 38: 76,000,000 rows read so far [83s elapsed, 919,482 rows/s]
+     chunk 39: 78,000,000 rows read so far [85s elapsed, 919,433 rows/s]
+     chunk 40: 80,000,000 rows read so far [87s elapsed, 919,401 rows/s]
+     chunk 41: 82,000,000 rows read so far [89s elapsed, 919,395 rows/s]
+     chunk 42: 84,000,000 rows read so far [91s elapsed, 919,450 rows/s]
+     chunk 43: 86,000,000 rows read so far [94s elapsed, 919,521 rows/s]
+     chunk 44: 88,000,000 rows read so far [96s elapsed, 919,562 rows/s]
+     chunk 45: 90,000,000 rows read so far [98s elapsed, 919,406 rows/s]
+     chunk 46: 92,000,000 rows read so far [100s elapsed, 919,110 rows/s]
+     chunk 47: 94,000,000 rows read so far [102s elapsed, 918,780 rows/s]
+     chunk 48: 96,000,000 rows read so far [105s elapsed, 918,523 rows/s]
+     chunk 49: 98,000,000 rows read so far [107s elapsed, 918,330 rows/s]
+     chunk 50: 100,000,000 rows read so far [109s elapsed, 918,148 rows/s]
+     chunk 51: 102,000,000 rows read so far [111s elapsed, 917,981 rows/s]
+     chunk 52: 104,000,000 rows read so far [113s elapsed, 917,805 rows/s]
+     chunk 53: 106,000,000 rows read so far [116s elapsed, 917,593 rows/s]
+     chunk 54: 108,000,000 rows read so far [118s elapsed, 917,411 rows/s]
+     chunk 55: 110,000,000 rows read so far [120s elapsed, 917,252 rows/s]
+     chunk 56: 112,000,000 rows read so far [122s elapsed, 917,036 rows/s]
+     chunk 57: 114,000,000 rows read so far [124s elapsed, 916,879 rows/s]
+     chunk 58: 116,000,000 rows read so far [127s elapsed, 916,733 rows/s]
+     chunk 59: 118,000,000 rows read so far [129s elapsed, 916,581 rows/s]
+     chunk 60: 120,000,000 rows read so far [131s elapsed, 916,410 rows/s]
+     chunk 61: 122,000,000 rows read so far [133s elapsed, 916,287 rows/s]
+     chunk 62: 124,000,000 rows read so far [135s elapsed, 916,153 rows/s]
+     chunk 63: 126,000,000 rows read so far [138s elapsed, 916,035 rows/s]
+     chunk 64: 128,000,000 rows read so far [140s elapsed, 915,851 rows/s]
+     chunk 65: 130,000,000 rows read so far [142s elapsed, 915,729 rows/s]
+     chunk 66: 132,000,000 rows read so far [144s elapsed, 915,621 rows/s]
+     chunk 67: 134,000,000 rows read so far [146s elapsed, 915,398 rows/s]
+     chunk 68: 136,000,000 rows read so far [149s elapsed, 915,181 rows/s]
+     chunk 69: 138,000,000 rows read so far [151s elapsed, 914,996 rows/s]
+     chunk 70: 140,000,000 rows read so far [153s elapsed, 914,893 rows/s]
+     chunk 71: 142,000,000 rows read so far [155s elapsed, 914,780 rows/s]
+     chunk 72: 144,000,000 rows read so far [157s elapsed, 914,694 rows/s]
+     chunk 73: 146,000,000 rows read so far [160s elapsed, 914,559 rows/s]
+     chunk 74: 148,000,000 rows read so far [162s elapsed, 914,451 rows/s]
+     chunk 75: 150,000,000 rows read so far [164s elapsed, 914,366 rows/s]
+     chunk 76: 152,000,000 rows read so far [166s elapsed, 914,266 rows/s]
+     chunk 77: 154,000,000 rows read so far [168s elapsed, 914,165 rows/s]
+     chunk 78: 156,000,000 rows read so far [171s elapsed, 914,026 rows/s]
+     chunk 79: 158,000,000 rows read so far [173s elapsed, 913,942 rows/s]
+     chunk 80: 160,000,000 rows read so far [175s elapsed, 913,837 rows/s]
+     chunk 81: 162,000,000 rows read so far [177s elapsed, 913,738 rows/s]
+     chunk 82: 164,000,000 rows read so far [180s elapsed, 913,642 rows/s]
+     chunk 83: 166,000,000 rows read so far [182s elapsed, 913,554 rows/s]
+     chunk 84: 168,000,000 rows read so far [184s elapsed, 913,450 rows/s]
+     chunk 85: 170,000,000 rows read so far [186s elapsed, 913,330 rows/s]
+     chunk 86: 172,000,000 rows read so far [188s elapsed, 913,263 rows/s]
+     chunk 87: 174,000,000 rows read so far [191s elapsed, 913,215 rows/s]
+     chunk 88: 176,000,000 rows read so far [193s elapsed, 913,217 rows/s]
+     chunk 89: 178,000,000 rows read so far [195s elapsed, 913,213 rows/s]
+     chunk 90: 180,000,000 rows read so far [197s elapsed, 913,195 rows/s]
+     chunk 91: 182,000,000 rows read so far [199s elapsed, 913,203 rows/s]
+     chunk 92: 184,000,000 rows read so far [201s elapsed, 913,173 rows/s]
+     chunk 93: 186,000,000 rows read so far [204s elapsed, 913,175 rows/s]
+     chunk 94: 188,000,000 rows read so far [206s elapsed, 913,149 rows/s]
+     chunk 95: 190,000,000 rows read so far [208s elapsed, 913,182 rows/s]
+     chunk 96: 192,000,000 rows read so far [210s elapsed, 913,137 rows/s]
+     chunk 97: 194,000,000 rows read so far [212s elapsed, 913,145 rows/s]
+     chunk 98: 196,000,000 rows read so far [215s elapsed, 913,164 rows/s]
+     chunk 99: 198,000,000 rows read so far [217s elapsed, 913,166 rows/s]
+     chunk 100: 200,000,000 rows read so far [219s elapsed, 913,150 rows/s]
+     chunk 101: 202,000,000 rows read so far [221s elapsed, 913,138 rows/s]
+     chunk 102: 204,000,000 rows read so far [223s elapsed, 913,131 rows/s]
+     chunk 103: 206,000,000 rows read so far [226s elapsed, 913,131 rows/s]
+     chunk 104: 208,000,000 rows read so far [228s elapsed, 913,127 rows/s]
+     chunk 105: 210,000,000 rows read so far [230s elapsed, 913,117 rows/s]
+     chunk 106: 212,000,000 rows read so far [232s elapsed, 913,111 rows/s]
+     chunk 107: 214,000,000 rows read so far [234s elapsed, 913,108 rows/s]
+     chunk 108: 216,000,000 rows read so far [237s elapsed, 913,105 rows/s]
+     chunk 109: 218,000,000 rows read so far [239s elapsed, 913,117 rows/s]
+     chunk 110: 220,000,000 rows read so far [241s elapsed, 913,097 rows/s]
+     chunk 111: 222,000,000 rows read so far [243s elapsed, 913,080 rows/s]
+     chunk 112: 224,000,000 rows read so far [245s elapsed, 913,076 rows/s]
+     chunk 113: 226,000,000 rows read so far [248s elapsed, 913,066 rows/s]
+     chunk 114: 228,000,000 rows read so far [250s elapsed, 913,058 rows/s]
+     chunk 115: 230,000,000 rows read so far [252s elapsed, 913,047 rows/s]
+     chunk 116: 232,000,000 rows read so far [254s elapsed, 913,019 rows/s]
+     chunk 117: 234,000,000 rows read so far [256s elapsed, 913,009 rows/s]
+     chunk 118: 236,000,000 rows read so far [258s elapsed, 912,985 rows/s]
+     chunk 119: 238,000,000 rows read so far [261s elapsed, 912,977 rows/s]
+     chunk 120: 240,000,000 rows read so far [263s elapsed, 912,986 rows/s]
+     chunk 121: 242,000,000 rows read so far [265s elapsed, 913,000 rows/s]
+     chunk 122: 244,000,000 rows read so far [267s elapsed, 912,988 rows/s]
+     chunk 123: 246,000,000 rows read so far [269s elapsed, 912,975 rows/s]
+     chunk 124: 248,000,000 rows read so far [272s elapsed, 912,953 rows/s]
+     chunk 125: 250,000,000 rows read so far [274s elapsed, 912,937 rows/s]
+     chunk 126: 252,000,000 rows read so far [276s elapsed, 912,933 rows/s]
+     chunk 127: 254,000,000 rows read so far [278s elapsed, 912,941 rows/s]
+     chunk 128: 256,000,000 rows read so far [280s elapsed, 912,938 rows/s]
+     chunk 129: 258,000,000 rows read so far [283s elapsed, 912,918 rows/s]
+     chunk 130: 260,000,000 rows read so far [285s elapsed, 912,923 rows/s]
+     chunk 131: 262,000,000 rows read so far [287s elapsed, 912,916 rows/s]
+     chunk 132: 264,000,000 rows read so far [289s elapsed, 912,879 rows/s]
+     chunk 133: 266,000,000 rows read so far [291s elapsed, 912,835 rows/s]
+     chunk 134: 268,000,000 rows read so far [294s elapsed, 912,784 rows/s]
+     chunk 135: 270,000,000 rows read so far [296s elapsed, 912,752 rows/s]
+     chunk 136: 272,000,000 rows read so far [298s elapsed, 912,706 rows/s]
+     chunk 137: 274,000,000 rows read so far [300s elapsed, 912,666 rows/s]
+/home/ec2-user/anomaly-detection/run.py:114: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+  for i, chunk in enumerate(pd.read_csv(path, dtype=DTYPE_MAP,
+     chunk 138: 276,000,000 rows read so far [303s elapsed, 911,621 rows/s]
+     chunk 139: 278,000,000 rows read so far [305s elapsed, 911,585 rows/s]
+     chunk 140: 280,000,000 rows read so far [307s elapsed, 911,533 rows/s]
+     chunk 141: 282,000,000 rows read so far [309s elapsed, 911,507 rows/s]
+     chunk 142: 284,000,000 rows read so far [312s elapsed, 911,517 rows/s]
+     chunk 143: 286,000,000 rows read so far [314s elapsed, 911,466 rows/s]
+     chunk 144: 288,000,000 rows read so far [316s elapsed, 911,446 rows/s]
+     chunk 145: 290,000,000 rows read so far [318s elapsed, 911,391 rows/s]
+     chunk 146: 292,000,000 rows read so far [320s elapsed, 911,373 rows/s]
+     chunk 147: 294,000,000 rows read so far [323s elapsed, 911,365 rows/s]
+     chunk 148: 296,000,000 rows read so far [325s elapsed, 911,350 rows/s]
+     chunk 149: 298,000,000 rows read so far [327s elapsed, 911,344 rows/s]
+     chunk 150: 300,000,000 rows read so far [329s elapsed, 911,339 rows/s]
+     chunk 151: 302,000,000 rows read so far [331s elapsed, 911,347 rows/s]
+     chunk 152: 304,000,000 rows read so far [334s elapsed, 911,328 rows/s]
+     chunk 153: 306,000,000 rows read so far [336s elapsed, 911,319 rows/s]
+     chunk 154: 308,000,000 rows read so far [338s elapsed, 911,305 rows/s]
+     chunk 155: 310,000,000 rows read so far [340s elapsed, 911,294 rows/s]
+     chunk 156: 312,000,000 rows read so far [342s elapsed, 911,191 rows/s]
+     chunk 157: 314,000,000 rows read so far [345s elapsed, 911,193 rows/s]
+     chunk 158: 316,000,000 rows read so far [347s elapsed, 911,191 rows/s]
+     chunk 159: 318,000,000 rows read so far [349s elapsed, 911,182 rows/s]
+     chunk 160: 320,000,000 rows read so far [351s elapsed, 911,187 rows/s]
+     chunk 161: 322,000,000 rows read so far [353s elapsed, 911,177 rows/s]
+     chunk 162: 324,000,000 rows read so far [356s elapsed, 911,151 rows/s]
+     chunk 163: 326,000,000 rows read so far [358s elapsed, 911,134 rows/s]
+     chunk 164: 328,000,000 rows read so far [360s elapsed, 911,083 rows/s]
+     chunk 165: 330,000,000 rows read so far [362s elapsed, 911,084 rows/s]
+     chunk 166: 332,000,000 rows read so far [364s elapsed, 911,088 rows/s]
+     chunk 167: 334,000,000 rows read so far [367s elapsed, 911,094 rows/s]
+     chunk 168: 336,000,000 rows read so far [369s elapsed, 911,085 rows/s]
+     chunk 169: 338,000,000 rows read so far [371s elapsed, 911,084 rows/s]
+     chunk 170: 340,000,000 rows read so far [373s elapsed, 911,084 rows/s]
+     chunk 171: 342,000,000 rows read so far [375s elapsed, 911,086 rows/s]
+     chunk 172: 344,000,000 rows read so far [378s elapsed, 911,092 rows/s]
+     chunk 173: 346,000,000 rows read so far [380s elapsed, 911,095 rows/s]
+     chunk 174: 348,000,000 rows read so far [382s elapsed, 911,085 rows/s]
+     chunk 175: 350,000,000 rows read so far [384s elapsed, 911,044 rows/s]
+     chunk 176: 352,000,000 rows read so far [386s elapsed, 910,995 rows/s]
+     chunk 177: 354,000,000 rows read so far [389s elapsed, 910,972 rows/s]
+     chunk 178: 356,000,000 rows read so far [391s elapsed, 910,980 rows/s]
+     chunk 179: 358,000,000 rows read so far [393s elapsed, 910,985 rows/s]
+     chunk 180: 360,000,000 rows read so far [395s elapsed, 910,982 rows/s]
+     chunk 181: 362,000,000 rows read so far [397s elapsed, 910,970 rows/s]
+     chunk 182: 364,000,000 rows read so far [400s elapsed, 910,959 rows/s]
+     chunk 183: 366,000,000 rows read so far [402s elapsed, 910,942 rows/s]
+     chunk 184: 368,000,000 rows read so far [404s elapsed, 910,922 rows/s]
+     chunk 185: 370,000,000 rows read so far [406s elapsed, 910,924 rows/s]
+     chunk 186: 372,000,000 rows read so far [408s elapsed, 910,924 rows/s]
+     chunk 187: 374,000,000 rows read so far [411s elapsed, 910,904 rows/s]
+     chunk 188: 376,000,000 rows read so far [413s elapsed, 910,903 rows/s]
+     chunk 189: 378,000,000 rows read so far [415s elapsed, 910,920 rows/s]
+     chunk 190: 380,000,000 rows read so far [417s elapsed, 910,915 rows/s]
+     chunk 191: 382,000,000 rows read so far [419s elapsed, 910,923 rows/s]
+     chunk 192: 384,000,000 rows read so far [422s elapsed, 910,923 rows/s]
+     chunk 193: 386,000,000 rows read so far [424s elapsed, 910,922 rows/s]
+     chunk 194: 388,000,000 rows read so far [426s elapsed, 910,914 rows/s]
+     chunk 195: 390,000,000 rows read so far [428s elapsed, 910,914 rows/s]
+     chunk 196: 392,000,000 rows read so far [430s elapsed, 910,916 rows/s]
+     chunk 197: 394,000,000 rows read so far [433s elapsed, 910,916 rows/s]
+     chunk 198: 396,000,000 rows read so far [435s elapsed, 910,920 rows/s]
+     chunk 199: 398,000,000 rows read so far [437s elapsed, 910,923 rows/s]
+     chunk 200: 400,000,000 rows read so far [439s elapsed, 910,927 rows/s]
+     chunk 201: 402,000,000 rows read so far [441s elapsed, 910,927 rows/s]
+     chunk 202: 404,000,000 rows read so far [444s elapsed, 910,919 rows/s]
+     chunk 203: 406,000,000 rows read so far [446s elapsed, 910,922 rows/s]
+     chunk 204: 408,000,000 rows read so far [448s elapsed, 910,905 rows/s]
+     chunk 205: 410,000,000 rows read so far [450s elapsed, 910,901 rows/s]
+     chunk 206: 412,000,000 rows read so far [452s elapsed, 910,892 rows/s]
+     chunk 207: 414,000,000 rows read so far [454s elapsed, 910,900 rows/s]
+     chunk 208: 416,000,000 rows read so far [457s elapsed, 910,904 rows/s]
+     chunk 209: 418,000,000 rows read so far [459s elapsed, 910,913 rows/s]
+     chunk 210: 420,000,000 rows read so far [461s elapsed, 910,903 rows/s]
+     chunk 211: 422,000,000 rows read so far [463s elapsed, 910,896 rows/s]
+     chunk 212: 424,000,000 rows read so far [465s elapsed, 910,897 rows/s]
+     chunk 213: 426,000,000 rows read so far [468s elapsed, 910,881 rows/s]
+     chunk 214: 428,000,000 rows read so far [470s elapsed, 910,881 rows/s]
+     chunk 215: 430,000,000 rows read so far [472s elapsed, 910,881 rows/s]
+     chunk 216: 431,861,746 rows read so far [474s elapsed, 910,874 rows/s]
+  Concatenating chunks
+  431,861,746 pings, 50,000 contacts, columns: ['entity_id', 'lat', 'lon', 'timestamp', 'vessel_type', 'sog_knots', 'is_anomalous', 'anomaly_type']
+  Memory usage: 37.58 GB
+
+Extracting features
+  Auto-detected ping interval : 5.0 min
+  Auto-estimated contamination: 0.019 (1.9% of contacts flagged as structurally suspicious)
+  Computing pairwise proximity across 8640 timestamps × 50000 contacts
+  Features cached → features_full.parquet
+  Feature matrix: 50000 contacts × 29 features  [18856.1s]
+  Using interval=5.0 min, contamination=0.019
+
+Running detectors
+  [1/5] Score: speed teleport (rule-based)
+  [2/5] Score: transmission blackout (rule-based)
+  [3/5] Score: slow operations near sensitive areas (Isolation Factor + Local Outlier Factor)
+  [4/5] Score: at-sea co-location (IF + LOF)
+  [5/5] Score: erratic close-range pursuit (IF + LOF)
+  Done  [18864.7s]
+
+
+DETECTION RESULTS
+  Contacts evaluated : 50000
+  True anomalous     : 950 (1.9%)
+  Flagged by detector: 1053
+
+  Precision          : 0.876
+  Recall             : 0.972
+  F1                 : 0.922
+  AUROC              : 1.000
+  Average Precision  : 0.990
+
+  Confusion: TP=923 FP=130 FN=27 TN=48920
+
+
+RECALL BY ANOMALY TYPE
+          anomaly_type     n  flagged  recall  mean_score_teleport  mean_score_blackout  mean_score_slow_stratum  mean_score_colocation  mean_score_erratic_pursuit
+          ais_spoofing   200      200   1.000                1.000                0.000                    0.205                  0.122             0.356
+       illegal_fishing   350      350   1.000                1.000                0.000                    0.316                  0.098             0.286
+         transshipment   200      196   0.980                0.827                0.000                    0.342                  0.559             0.255
+         dark_activity   150      136   0.907                0.000                0.737                    0.235                  0.178             0.091
+aggressive_maneuvering    50       41   0.820                0.901                0.000                    0.329                  0.415             0.260
+                  none 49050      130   0.003                0.000                0.000                    0.096                  0.094             0.078
+
+
+TOP 20 CONTACTS BY ANOMALY SCORE
+           ensemble_score  ensemble_mean  score_teleport  score_blackout  score_slow_stratum  score_colocation  score_erratic_pursuit  true_anomalous      true_type
+entity_id
+33432               1.200          0.330           0.000           1.000               0.335             0.071                  0.043   1  dark_activity
+21262               1.200          0.270           0.000           1.000               0.067             0.032                  0.053   1  dark_activity
+46815               1.200          0.284           0.000           1.000               0.069             0.054                  0.095   1  dark_activity
+18632               1.200          0.259           0.000           1.000               0.022             0.044                  0.030   1  dark_activity
+14332               1.200          0.321           0.000           1.000               0.331             0.059                  0.016   1  dark_activity
+8208                1.200          0.297           0.000           1.000               0.069             0.114                  0.101   1  dark_activity
+3973                1.200          0.421           0.000           1.000               0.454             0.379                  0.071   1  dark_activity
+37394               1.200          0.324           0.000           1.000               0.392             0.015                  0.015   1  dark_activity
+16412               1.200          0.312           0.000           1.000               0.074             0.223                  0.062   1  dark_activity
+35079               1.200          0.260           0.000           1.000               0.041             0.010                  0.047   1  dark_activity
+23605               1.200          0.290           0.000           1.000               0.062             0.100                  0.086   1  dark_activity
+36953               1.200          0.280           0.000           1.000               0.030             0.086                  0.085   1  dark_activity
+8550                1.200          0.294           0.000           1.000               0.200             0.023                  0.045   1  dark_activity
+26295               1.200          0.293           0.000           1.000               0.096             0.115                  0.052   1  dark_activity
+35210               1.200          0.291           0.000           1.000               0.114             0.048                  0.095   1  dark_activity
+40141               1.200          0.273           0.000           1.000               0.098             0.019                  0.050   1  dark_activity
+47528               1.200          0.295           0.000           1.000               0.140             0.029                  0.108   1  dark_activity
+29640               1.200          0.251           0.000           1.000               0.026             0.011                  0.019   1  dark_activity
+21087               1.200          0.270           0.000           1.000               0.059             0.038                  0.054   1  dark_activity
+40883               1.200          0.306           0.000           1.000               0.200             0.086                  0.042   1  dark_activity
+
+
+Scores written → scores_full.csv
+
+Total runtime: 18865.2s

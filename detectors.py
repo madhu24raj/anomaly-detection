@@ -1,7 +1,3 @@
-# detectors.py
-# rule-based + ml anomaly scoring, per contact
-# no ground truth used anywhere here
-
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
@@ -13,22 +9,16 @@ def _scale(X: np.ndarray) -> np.ndarray:
     return RobustScaler().fit_transform(X)
 
 
-def _if_score(X: np.ndarray, contamination: float = 0.05,
-              n_estimators: int = 200, seed: int = 0) -> np.ndarray:
-    """Isolation Forest anomaly score, normalised to [0, 1] (higher = stranger)."""
-    clf = IsolationForest(n_estimators=n_estimators, contamination=contamination,
-                          random_state=seed, n_jobs=-1)
+def _if_score(X: np.ndarray, contamination: float = 0.05, n_estimators: int = 200, seed: int = 0) -> np.ndarray:
+    clf = IsolationForest(n_estimators=n_estimators, contamination=contamination, random_state=seed, n_jobs=-1)
     clf.fit(X)
-    raw = -clf.score_samples(X)          # already a "strangeness" score
+    raw = -clf.score_samples(X)          
     lo, hi = raw.min(), raw.max()
     return (raw - lo) / (hi - lo + 1e-12)
 
 
-def _lof_score(X: np.ndarray, n_neighbors: int = 20,
-               contamination: float = 0.05) -> np.ndarray:
-    """LOF anomaly score, normalised to [0, 1]."""
-    clf = LocalOutlierFactor(n_neighbors=n_neighbors, contamination=contamination,
-                              novelty=False, n_jobs=-1)
+def _lof_score(X: np.ndarray, n_neighbors: int = 20, contamination: float = 0.05) -> np.ndarray:
+    clf = LocalOutlierFactor(n_neighbors=n_neighbors, contamination=contamination, novelty=False, n_jobs=-1)
     clf.fit(X)
     raw = -clf.negative_outlier_factor_
     lo, hi = raw.min(), raw.max()
@@ -36,23 +26,17 @@ def _lof_score(X: np.ndarray, n_neighbors: int = 20,
 
 
 def score_teleport(feat: pd.DataFrame) -> pd.Series:
-    """
-    Contacts that exhibit an implied speed far beyond any plausible vessel
-    physics between consecutive pings — a hard physics violation.
+    
+    HARD_CAP= 50.0   
 
-    Requires at least 2 suspicious-speed pings (not just a single max spike)
-    to score highly, so isolated GPS jitter doesn't dominate.
-    """
-    HARD_CAP     = 50.0   # kt — raised; single-ping jitter can reach 40-50
-    SOFT_CAP     = 35.0   # kt — above this we start scoring
-    MIN_PINGS    = 2      # need at least this many suspicious pings to score > 0.5
+    SOFT_CAP = 35.0   
+    MIN_PINGS = 2      
 
     spd   = feat["max_implied_speed_kt"].fillna(0.0)
     n_sus = feat["n_suspicious_speed_pings"].fillna(0.0)
 
-    # Base score from max speed
-    base  = np.clip((spd - SOFT_CAP) / (HARD_CAP - SOFT_CAP + 1e-6), 0, 1)
-    # Confidence gate: single-ping spikes get halved
+    base  = np.clip((spd - SOFT_CAP) /(HARD_CAP - SOFT_CAP + 1e-6), 0, 1)
+
     conf  = np.where(n_sus >= MIN_PINGS, 1.0, 0.45)
     score = base * conf
 
@@ -60,36 +44,27 @@ def score_teleport(feat: pd.DataFrame) -> pd.Series:
 
 
 def score_blackout(feat: pd.DataFrame, nominal_interval_h: float = 0.25) -> pd.Series:
-    # long silence + displacement when it comes back
-    SILENCE_THRESHOLD_H = 4.0    # gaps below this are just noise / lost signal
+    SILENCE_THRESHOLD_H =4.0    
 
     gap_h  = feat["max_gap_h"].fillna(0.0)
     disp   = feat["max_gap_displacement_nm"].fillna(0.0)
 
-    # Normalise gap length: 0 below threshold, 1 at 48 h
     gap_score  = np.clip((gap_h - SILENCE_THRESHOLD_H) / (48.0 - SILENCE_THRESHOLD_H), 0, 1)
-    # Normalise displacement: 0 at 0 nm, 1 at 300 nm
     disp_score = np.clip(disp / 300.0, 0, 1)
 
     score = 0.6 * gap_score + 0.4 * disp_score
     return pd.Series(score.to_numpy(), index=feat.index, name="score_blackout")
 
 
-def score_slow_in_stratum(feat: pd.DataFrame,
-                           contamination: float = 0.05) -> pd.Series:
-    # slow loitering near sensitive zones, away from port
+def score_slow_in_stratum(feat: pd.DataFrame, contamination: float = 0.05) -> pd.Series:
     cols = [
-        "frac_slow", "frac_stopped",
-        "hours_inside_stratum", "min_stratum_dist_nm",
-        "straightness", "hull_area_deg2",
-        "min_port_dist_nm",
-    ]
+        "frac_slow", "frac_stopped", "hours_inside_stratum", "min_stratum_dist_nm",
+        "straightness", "hull_area_deg2", "min_port_dist_nm",]
     X = feat[cols].fillna(0.0).to_numpy()
 
-    # Flip sign for features where *low* is suspicious
-    X[:, 3] = -X[:, 3]   # min_stratum_dist_nm: closer = worse
-    X[:, 4] = -X[:, 4]   # straightness: lower = more loitering-like
-    X[:, 5] = -X[:, 5]   # hull_area: smaller = confined area
+    X[:, 3] = -X[:, 3]   # min_stratum_dist_nm:closer = worse
+    X[:, 4] = -X[:, 4]   # straightness
+    X[:, 5] = -X[:, 5]   # hull_area
 
     Xs = _scale(X)
     s_if  = _if_score(Xs, contamination=contamination)
@@ -99,25 +74,14 @@ def score_slow_in_stratum(feat: pd.DataFrame,
     return pd.Series(score, index=feat.index, name="score_slow_stratum")
 
 
-def score_colocation(feat: pd.DataFrame,
-                     contamination: float = 0.05) -> pd.Series:
-    """
-    Two contacts meeting at sea: both near-stopped, co-located, far from port.
-
-    Features: co_slow_hours, hours_within_1nm, sustained_close_episodes,
-              min_port_dist_nm (far from port makes it more suspicious),
-              mean_speed_kt (slow during rendezvous).
-    """
+def score_colocation(feat: pd.DataFrame, contamination: float = 0.05) -> pd.Series:
+ 
     cols = [
         "co_slow_hours", "hours_within_1nm",
-        "sustained_close_episodes", "min_port_dist_nm",
-        "frac_stopped",
-    ]
+        "sustained_close_episodes", "min_port_dist_nm", "frac_stopped",]
     X = feat[cols].fillna(0.0).to_numpy()
 
-    # min_port_dist_nm: far = suspicious for co-location
-    # (flip so high distance = high anomaly contribution)
-    X[:, 3] = X[:, 3]   # already: farther port → bigger value → IF sees it as outlier
+    X[:, 3] = X[:, 3]   
 
     Xs = _scale(X)
     s_if  = _if_score(Xs, contamination=contamination)
@@ -127,16 +91,13 @@ def score_colocation(feat: pd.DataFrame,
     return pd.Series(score, index=feat.index, name="score_colocation")
 
 
-def score_erratic_pursuit(feat: pd.DataFrame,
-                           contamination: float = 0.05) -> pd.Series:
-    # erratic movement at close range to another vessel
+def score_erratic_pursuit(feat: pd.DataFrame, contamination: float = 0.05) -> pd.Series:
     cols = [
         "heading_variance", "heading_change_rate",
-        "hours_within_2nm", "p95_speed_kt",
-        "std_speed_kt", "min_nn_dist_nm",
+        "hours_within_2nm", "p95_speed_kt", "std_speed_kt", "min_nn_dist_nm",
     ]
     X = feat[cols].fillna(0.0).to_numpy()
-    X[:, 5] = -X[:, 5]   # min_nn_dist: closer = more suspicious
+    X[:, 5] = -X[:, 5]   # min_nn_dist
 
     Xs = _scale(X)
     s_if  = _if_score(Xs, contamination=contamination)
@@ -146,23 +107,20 @@ def score_erratic_pursuit(feat: pd.DataFrame,
     return pd.Series(score, index=feat.index, name="score_erratic_pursuit")
 
 
-def ensemble_scores(feat: pd.DataFrame,
-                    nominal_interval_h: float = 0.25,
-                    contamination: float = 0.05) -> pd.DataFrame:
-    """run all detectors and combine into ensemble_score"""
-    print("  [1/5] Score: speed teleport (rule-based)...")
+def ensemble_scores(feat: pd.DataFrame, nominal_interval_h: float = 0.25, contamination: float = 0.05) -> pd.DataFrame:
+    print("  [1/5] Score: speed teleport (rule-based)")
     s1 = score_teleport(feat)
 
-    print("  [2/5] Score: transmission blackout (rule-based)...")
+    print("  [2/5] Score: transmission blackout (rule-based)")
     s2 = score_blackout(feat, nominal_interval_h)
 
-    print("  [3/5] Score: slow operations near sensitive areas (IF + LOF)...")
+    print("  [3/5] Score: slow operations near sensitive areas (Isolation Forest + Local Outlier Factor)")
     s3 = score_slow_in_stratum(feat, contamination)
 
-    print("  [4/5] Score: at-sea co-location (IF + LOF)...")
+    print("  [4/5] Score: at-sea co-location (IF + LOF)")
     s4 = score_colocation(feat, contamination)
 
-    print("  [5/5] Score: erratic close-range pursuit (IF + LOF)...")
+    print("  [5/5] Score: erratic close-range pursuit (IF + LOF)")
     s5 = score_erratic_pursuit(feat, contamination)
 
     scores = pd.DataFrame({
@@ -173,18 +131,11 @@ def ensemble_scores(feat: pd.DataFrame,
         "score_erratic_pursuit": s5,
     })
 
-    # Weighted combination.
-    # Teleport weight reduced: a speed violation alone is necessary but not
-    # sufficient — real deployments have GPS glitches and AIS relay errors.
-    # The ensemble needs at least partial corroboration from a behavioural detector.
     W = np.array([1.05, 1.2, 1.0, 1.0, 1.0])
     weighted = scores.to_numpy() * W[None, :]
 
-    # Primary score: weighted max (loudest single alarm)
     max_score = weighted.max(axis=1)
 
-    # Soft corroboration bonus: if the top detector is teleport AND at least one
-    # behavioural detector also scores > 0.25, keep full score; otherwise dampen.
     teleport_col  = list(scores.columns).index("score_teleport")
     behav_cols    = [i for i, c in enumerate(scores.columns)
                      if c not in ("score_teleport", "score_blackout")]

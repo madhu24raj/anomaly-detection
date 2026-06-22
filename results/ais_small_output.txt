@@ -1,0 +1,71 @@
+Loading ais_small.csv :
+  670,193 pings, 1,000 contacts, columns: ['entity_id', 'lat', 'lon', 'timestamp', 'vessel_type', 'sog_knots', 'is_anomalous', 'anomaly_type']
+  Memory usage: 0.02 GB
+
+Extracting features
+  Auto-detected ping interval : 15.0 min
+  Auto-estimated contamination: 0.042 (4.2% of contacts flagged as structurally suspicious)
+  Computing pairwise proximity across 672 timestamps × 1000 contacts
+  Feature matrix: 1000 contacts × 29 features  [14.2s]
+  Using interval=15.0 min, contamination=0.042
+
+Running detectors
+  [1/5] Score: speed teleport (rule-based)
+  [2/5] Score: transmission blackout (rule-based)
+  [3/5] Score: slow operations near sensitive areas (Isolation Forest + Local Outlier Factor)...
+  [4/5] Score: at-sea co-location (IF + LOF)
+  [5/5] Score: erratic close-range pursuit (IF + LOF)
+  Done  [15.3s]
+
+
+DETECTION RESULTS
+  Contacts evaluated : 1000
+  True anomalous     : 48 (4.8%)
+  Flagged by detector: 55
+
+  Precision          : 0.818
+  Recall             : 0.938
+  F1                 : 0.874
+  AUROC              : 0.998
+  Average Precision  : 0.958
+
+  Confusion: TP=45 FP=10 FN=3 TN=942
+
+
+RECALL BY ANOMALY TYPE
+          anomaly_type   n  flagged  recall  mean_score_teleport  mean_score_blackout  mean_score_slow_stratum  mean_score_colocation  mean_score_erratic_pursuit
+aggressive_maneuvering   2        2   1.000                1.000                0.000                    0.254                  0.420                       0.310
+          ais_spoofing  10       10   1.000                1.000                0.000                    0.235                  0.102                       0.412
+       illegal_fishing  18       18   1.000                1.000                0.000                    0.356                  0.065                       0.397
+         dark_activity   8        7   0.875                0.000                0.677                    0.215                  0.129                       0.090
+         transshipment  10        8   0.800                0.247                0.000                    0.343                  0.575                       0.190
+                  none 952       10   0.011                0.000                0.000                    0.081                  0.082                       0.096
+
+
+TOP 20 CONTACTS BY ANOMALY SCORE
+           ensemble_score  ensemble_mean  score_teleport  score_blackout  score_slow_stratum  score_colocation  score_erratic_pursuit  true_anomalous               true_type
+entity_id                                                                                                                                                                    
+761                 1.200          0.268           0.000           1.000               0.029             0.028                  0.081               1           dark_activity
+59                  1.200          0.274           0.000           1.000               0.116             0.014                  0.040               1           dark_activity
+929                 1.050          0.442           1.000           0.000               0.253             0.446                  0.462               1  aggressive_maneuvering
+834                 1.050          0.342           1.000           0.000               0.336             0.034                  0.288               1         illegal_fishing
+835                 1.050          0.399           1.000           0.000               0.369             0.253                  0.322               1            ais_spoofing
+755                 1.050          0.365           1.000           0.000               0.368             0.008                  0.400               1         illegal_fishing
+971                 1.050          0.317           1.000           0.000               0.208             0.006                  0.320               1         illegal_fishing
+584                 1.050          0.311           1.000           0.000               0.031             0.092                  0.384               1            ais_spoofing
+640                 1.050          0.276           1.000           0.000               0.042             0.016                  0.272               1            ais_spoofing
+750                 1.050          0.399           1.000           0.000               0.286             0.006                  0.652               1         illegal_fishing
+745                 1.050          0.416           1.000           0.000               0.360             0.176                  0.497               1            ais_spoofing
+697                 1.050          0.365           1.000           0.000               0.382             0.059                  0.333               1         illegal_fishing
+741                 1.050          0.363           1.000           0.000               0.322             0.035                  0.407               1            ais_spoofing
+606                 1.050          0.371           1.000           0.000               0.254             0.394                  0.158               1  aggressive_maneuvering
+667                 1.050          0.442           1.000           0.000               0.264             0.513                  0.383               1         illegal_fishing
+624                 1.050          0.410           1.000           0.000               0.463             0.117                  0.419               1         illegal_fishing
+445                 1.050          0.391           1.000           0.000               0.279             0.509                  0.119               1           transshipment
+415                 1.050          0.382           1.000           0.000               0.207             0.019                  0.634               1         illegal_fishing
+400                 1.050          0.344           1.000           0.000               0.251             0.012                  0.407               1            ais_spoofing
+530                 1.050          0.358           1.000           0.000               0.402             0.017                  0.322               1         illegal_fishing
+
+
+
+Total runtime: 15.3s
