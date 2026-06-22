@@ -30,6 +30,8 @@ import os
 import sys
 import time
 
+from typing import Optional
+
 import pandas as pd
 
 # Local modules
@@ -70,7 +72,7 @@ DTYPE_MAP = {
 
 
 def load_data(path: str, use_labels: bool = True,
-              chunksize: int | None = None) -> pd.DataFrame:
+              chunksize: Optional[int] = None) -> pd.DataFrame:
     """
     Load the AIS CSV with memory-efficient dtypes.
 
