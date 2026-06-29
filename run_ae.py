@@ -75,9 +75,8 @@ DTYPE_MAP = {
 }
 
 
-def load_data(path: str, use_labels: bool = True,
-              chunksize: Optional[int] = None) -> pd.DataFrame:
-    print(f"Loading {path} …")
+def load_data(path: str, use_labels: bool = True, chunksize: Optional[int] = None) -> pd.DataFrame:
+    print(f"Loading {path} ")
     cols_to_drop = [] if use_labels else ["is_anomalous", "anomaly_type"]
 
     if chunksize is None and path.endswith((".gz", ".csv.gz")):

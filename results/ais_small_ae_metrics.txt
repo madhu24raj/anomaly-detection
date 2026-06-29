@@ -1,0 +1,102 @@
+$ python run_ae.py ais_small.csv
+Device: cpu
+Loading ais_small.csv 
+  670,193 pings, 1,000 contacts, cols: ['entity_id', 'lat', 'lon', 'timestamp', 'vessel_type', 'sog_knots', 'is_anomalous', 'anomaly_type']
+  Memory: 0.02 GB
+
+Extracting features …
+  Auto-detected ping interval : 15.0 min
+  Auto-estimated contamination: 0.042 (4.2% of contacts flagged as structurally suspicious)
+  Computing pairwise proximity across 672 timestamps x 1000 contacts
+  Feature matrix: 1000 contacts × 29 features  [8.4s]
+
+Running Autoencoder detectors  (device=cpu) …
+  [1/5] AE: motion kinematics
+      ep   0  loss=0.91363  [MotionAE]
+      ep  20  loss=0.10833  [MotionAE]
+      ep  40  loss=0.06830  [MotionAE]
+      ep  60  loss=0.06199  [MotionAE]
+      ep  80  loss=0.05876  [MotionAE]
+      ep 100  loss=0.05781  [MotionAE]
+  [2/5] AE: spatial / stratum proximity
+      ep   0  loss=1.19237  [SpatialAE]
+      ep  20  loss=0.23205  [SpatialAE]
+      ep  40  loss=0.13880  [SpatialAE]
+      ep  60  loss=0.11232  [SpatialAE]
+      ep  80  loss=0.10482  [SpatialAE]
+      ep  99  loss=0.10593  [SpatialAE]
+  [3/5] AE: inter-vessel proximity  (conjunction features)
+      ep   0  loss=1.75087  [ProximityAE]
+      ep  20  loss=0.48471  [ProximityAE]
+      ep  40  loss=0.25075  [ProximityAE]
+      ep  60  loss=0.17404  [ProximityAE]
+      ep  80  loss=0.14942  [ProximityAE]
+      ep  99  loss=0.14965  [ProximityAE]
+  [4/5] AE: transmission gap / dark activity  (no upper clip)
+      ep   0  loss=0.42785  [GapAE]
+      ep  20  loss=0.06502  [GapAE]
+      ep  40  loss=0.03726  [GapAE]
+      ep  60  loss=0.03012  [GapAE]
+      ep  80  loss=0.02851  [GapAE]
+  [5/5] AE: full feature vector  (cross-group correlations)
+      ep   0  loss=1.15227  [FullAE]
+      ep  20  loss=0.30229  [FullAE]
+      ep  40  loss=0.20049  [FullAE]
+      ep  60  loss=0.17364  [FullAE]
+      ep  80  loss=0.15246  [FullAE]
+      ep 100  loss=0.14478  [FullAE]
+      ep 120  loss=0.13888  [FullAE]
+  [6/6] AE: LSTM sliding-window temporal
+      ep   0  loss=0.46719  [LSTM-AE]
+      ep  10  loss=0.42137  [LSTM-AE]
+      ep  20  loss=0.40151  [LSTM-AE]
+      ep  30  loss=0.39122  [LSTM-AE]
+      ep  39  loss=0.38991  [LSTM-AE]
+  Done  [1435.7s]
+
+  [AE-Ensemble] DETECTION RESULTS
+  Contacts evaluated : 1000
+  True anomalous     : 48
+  Flagged            : 172
+
+  Precision          : 0.5326
+  Recall             : 0.8333
+  F1                 : 0.3636
+  AUROC              : 0.9177
+  Avg Precision      : 0.3367
+  TP=40 FP=132 FN=8 TN=820
+
+  [AE-Ensemble] RECALL BY ANOMALY TYPE
+          anomaly_type   n  flagged  recall
+aggressive_maneuvering   2        2   1.000
+         dark_activity   8        8   1.000
+          ais_spoofing  10        9   0.900
+       illegal_fishing  18       16   0.889
+         transshipment  10        5   0.500
+                  none 952      132   0.139
+
+  [AE-Ensemble] TOP 20 CONTACTS BY SCORE
+           ensemble_score  ensemble_mean  score_motion  score_spatial  score_proximity  score_gap  score_full  score_lstm  true_anomalous        true_type
+entity_id                                                                                                                                                 
+576                 1.157          0.471         0.428          0.003            0.003      0.964       0.434       0.775               1    dark_activity
+59                  1.064          0.310         0.006          0.033            0.003      0.887       0.665       0.056               1    dark_activity
+296                 1.060          0.509         0.116          0.001            0.964      0.017       0.964       0.875               0             none
+378                 1.060          0.619         0.964          0.901            0.002      0.501       0.468       0.695               1  illegal_fishing
+912                 1.060          0.448         0.092          0.001            0.964      0.000       0.614       0.927               0             none
+145                 1.051          0.417         0.956          0.009            0.001      0.278       0.895       0.174               1    dark_activity
+761                 1.036          0.314         0.003          0.001            0.002      0.863       0.671       0.142               1    dark_activity
+45                  1.033          0.419         0.048          0.001            0.939      0.001       0.509       0.938               0             none
+213                 1.025          0.388         0.002          0.003            0.932      0.001       0.553       0.753               0             none
+667                 1.024          0.667         0.139          0.174            0.931      0.850       0.863       0.760               1  illegal_fishing
+998                 1.022          0.398         0.015          0.001            0.929      0.000       0.556       0.807               0             none
+246                 0.964          0.206         0.006          0.964            0.001      0.001       0.187       0.070               0             none
+89                  0.955          0.418         0.396          0.056            0.006      0.796       0.251       0.831               1     ais_spoofing
+294                 0.938          0.370         0.213          0.938            0.002      0.210       0.196       0.615               1  illegal_fishing
+624                 0.919          0.525         0.467          0.919            0.003      0.522       0.308       0.804               1  illegal_fishing
+206                 0.916          0.170         0.024          0.009            0.005      0.001       0.059       0.964               0             none
+926                 0.914          0.165         0.027          0.010            0.006      0.000       0.028       0.962               0             none
+314                 0.913          0.233         0.019          0.011            0.145      0.002       0.280       0.961               0             none
+88                  0.911          0.183         0.033          0.010            0.013      0.000       0.121       0.959               0             none
+187                 0.911          0.175         0.021          0.010            0.025      0.001       0.071       0.959               0             none
+
+Total runtime: 1435.7s

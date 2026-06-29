@@ -3,15 +3,17 @@
 #!/usr/bin/env python3
 __
 tracking requirements (TODO: make requirements.txt)
+torch
+
 pandas>=1.5
 
 numpy>=1.23
 
 scikit-learn>=1.2
-scikit-learn>=1.2
 
 scipy>=1.9
 pyarrow>=10.0   # (for parquet cachings)
+
 _____
 
 "contact" = vessel 
